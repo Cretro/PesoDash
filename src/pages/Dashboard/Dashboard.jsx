@@ -4,6 +4,8 @@ import { useAuth } from "../../context/AuthContext";
 import { useExpenses } from "../../context/ExpenseContext";
 import { useQuests } from "../../context/QuestContext";
 import { formatCurrency, getTodayString, sumExpenses } from "../../utils/formatters";
+import { Link } from "react-router-dom";
+import { FiBarChart2 } from "react-icons/fi";
 
 function CategoryEmoji({ cat }) {
   const map = { Food: "🍱", Commute: "🚌", "School Expenses": "📚", Others: "🛍️" };
@@ -84,6 +86,19 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+
+        {/* Analytics shortcut */}
+        <Link to="/analytics" className="text-decoration-none mb-3 d-block">
+          <div className="card rounded-3 glass-card" style={{ background: "rgba(99,102,241,.12)", border: "1px solid rgba(99,102,241,.2)" }}>
+            <div className="card-body d-flex align-items-center justify-content-between py-2">
+              <div className="d-flex align-items-center gap-2">
+                <FiBarChart2 className="text-primary" />
+                <span className="fw-bold text-white small">View Spending Analytics</span>
+              </div>
+              <span className="text-secondary small">→</span>
+            </div>
+          </div>
+        </Link>
 
         {/* Streak badge */}
         <div className="d-flex align-items-center gap-2 px-3 py-2 rounded-3 mb-3"
