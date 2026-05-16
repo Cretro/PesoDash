@@ -8,6 +8,7 @@ import {
   updateDoc,
   doc,
   serverTimestamp,
+  arrayUnion,
 } from "firebase/firestore";
 import { db } from "../firebase/firebase";
 import { useAuth } from "./AuthContext";
@@ -26,8 +27,8 @@ const QUEST_TEMPLATES = [
   {
     questType: "category",
     title: "Frugal Foodie",
-    description: "Spend ≤ ₱200 on Food this week",
-    target: 200,
+    description: "Spend ≤ ₱1,000 on Food this week",
+    target: 1000,
     pointsReward: 50,
     icon: "🍱",
     category: "Food",
@@ -41,6 +42,13 @@ const QUEST_TEMPLATES = [
     icon: "💎",
   },
 ];
+
+/** Returns the current week's Monday as a "YYYY-MM-DD" string */
+function getCurrentWeekStart() {
+  const now = new Date();
+  now.setDate(now.getDate() - now.getDay()); // Sunday = start of week
+  return now.toISOString().split("T")[0];
+}
 
 export function QuestProvider({ children }) {
   const [quests, setQuests] = useState([]);
@@ -58,22 +66,50 @@ export function QuestProvider({ children }) {
       const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       setQuests(data);
       setLoading(false);
-      
-      // Auto-initialize if empty and not just registered
+
+      // Auto-initialize if empty
       if (snap.empty && !initializing) {
         initializeQuests();
+      } else {
+        // Check if any quests need a weekly reset
+        checkAndResetQuests(data);
       }
     });
     return unsub;
   }, [currentUser]);
 
+  /** Resets quests that belong to a previous week, preserving completion history */
+  async function checkAndResetQuests(questData) {
+    const currentWeek = getCurrentWeekStart();
+
+    for (const quest of questData) {
+      // If this quest's week is in the past, it needs a reset
+      if (quest.weekStart && quest.weekStart < currentWeek) {
+        const updatePayload = {
+          weekStart: currentWeek,
+          progress: 0,
+          completed: false,
+        };
+
+        // Only record history entry if it was actually completed last week
+        if (quest.completed) {
+          updatePayload.timesCompleted = (quest.timesCompleted || 0) + 1;
+          updatePayload.completionHistory = arrayUnion({
+            weekStart: quest.weekStart,
+            completedAt: new Date().toISOString().split("T")[0],
+          });
+        }
+
+        await updateDoc(doc(db, "quests", quest.id), updatePayload);
+      }
+    }
+  }
+
   async function initializeQuests() {
     if (!currentUser || initializing) return;
     setInitializing(true);
     try {
-      const weekStart = new Date();
-      weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-      const weekStartStr = weekStart.toISOString().split("T")[0];
+      const weekStartStr = getCurrentWeekStart();
 
       for (const template of QUEST_TEMPLATES) {
         await addDoc(collection(db, "quests"), {
@@ -82,6 +118,8 @@ export function QuestProvider({ children }) {
           progress: 0,
           completed: false,
           weekStart: weekStartStr,
+          timesCompleted: 0,
+          completionHistory: [],
           createdAt: serverTimestamp(),
         });
       }
