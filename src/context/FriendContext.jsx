@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useReducer } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import {
   collection, doc, setDoc, updateDoc, onSnapshot,
   query, where, getDocs, serverTimestamp,
@@ -8,15 +8,9 @@ import { useAuth } from "./AuthContext";
 
 const FriendContext = createContext(null);
 
-function reducer(state, action) {
-  switch (action.type) {
-    case "SET": return { ...state, friends: action.payload, loading: false };
-    default:    return state;
-  }
-}
-
 export function FriendProvider({ children }) {
-  const [state, dispatch] = useReducer(reducer, { friends: [], loading: true });
+  const [friends, setFriends] = useState([]);
+  const [loading, setLoading] = useState(true);
   const { currentUser } = useAuth();
 
   // Real-time listener on the current user's friends subcollection
@@ -24,7 +18,8 @@ export function FriendProvider({ children }) {
     if (!currentUser) return;
     const q = collection(db, "users", currentUser.uid, "friends");
     const unsub = onSnapshot(q, (snap) => {
-      dispatch({ type: "SET", payload: snap.docs.map((d) => ({ id: d.id, ...d.data() })) });
+      setFriends(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      setLoading(false);
     });
     return unsub;
   }, [currentUser]);
@@ -46,7 +41,7 @@ export function FriendProvider({ children }) {
     if (target.uid === currentUser.uid) throw new Error("You can't add yourself!");
 
     // Check if already exists
-    const existing = state.friends.find((f) => f.id === target.uid);
+    const existing = friends.find((f) => f.id === target.uid);
     if (existing) throw new Error(`Already ${existing.status === "accepted" ? "friends" : "request pending"}.`);
 
     const payload = {
@@ -84,13 +79,13 @@ export function FriendProvider({ children }) {
     await updateDoc(doc(db, "users", friendUid, "friends", currentUser.uid), { status: "declined" });
   }
 
-  const accepted  = state.friends.filter((f) => f.status === "accepted");
-  const incoming  = state.friends.filter((f) => f.status === "pending" && f.sentBy !== currentUser?.uid);
-  const pending   = state.friends.filter((f) => f.status === "pending" && f.sentBy === currentUser?.uid);
+  const accepted  = friends.filter((f) => f.status === "accepted");
+  const incoming  = friends.filter((f) => f.status === "pending" && f.sentBy !== currentUser?.uid);
+  const pending   = friends.filter((f) => f.status === "pending" && f.sentBy === currentUser?.uid);
 
   return (
     <FriendContext.Provider value={{
-      friends: state.friends, loading: state.loading,
+      friends, loading,
       accepted, incoming, pending,
       pendingCount: incoming.length,
       sendFriendRequest, acceptRequest, declineRequest,

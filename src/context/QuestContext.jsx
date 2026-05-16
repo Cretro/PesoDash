@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useReducer } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import {
   collection,
   query,
@@ -42,19 +42,10 @@ const QUEST_TEMPLATES = [
   },
 ];
 
-function reducer(state, action) {
-  switch (action.type) {
-    case "SET_QUESTS":
-      return { ...state, quests: action.payload, loading: false };
-    case "SET_INITIALIZING":
-      return { ...state, initializing: action.payload };
-    default:
-      return state;
-  }
-}
-
 export function QuestProvider({ children }) {
-  const [state, dispatch] = useReducer(reducer, { quests: [], loading: true, initializing: false });
+  const [quests, setQuests] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [initializing, setInitializing] = useState(false);
   const { currentUser } = useAuth();
 
   useEffect(() => {
@@ -65,10 +56,11 @@ export function QuestProvider({ children }) {
     );
     const unsub = onSnapshot(q, (snap) => {
       const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      dispatch({ type: "SET_QUESTS", payload: data });
+      setQuests(data);
+      setLoading(false);
       
       // Auto-initialize if empty and not just registered
-      if (snap.empty && !state.initializing) {
+      if (snap.empty && !initializing) {
         initializeQuests();
       }
     });
@@ -76,8 +68,8 @@ export function QuestProvider({ children }) {
   }, [currentUser]);
 
   async function initializeQuests() {
-    if (!currentUser || state.initializing) return;
-    dispatch({ type: "SET_INITIALIZING", payload: true });
+    if (!currentUser || initializing) return;
+    setInitializing(true);
     try {
       const weekStart = new Date();
       weekStart.setDate(weekStart.getDate() - weekStart.getDay());
@@ -94,7 +86,7 @@ export function QuestProvider({ children }) {
         });
       }
     } finally {
-      dispatch({ type: "SET_INITIALIZING", payload: false });
+      setInitializing(false);
     }
   }
 
@@ -104,7 +96,7 @@ export function QuestProvider({ children }) {
 
   return (
     <QuestContext.Provider
-      value={{ ...state, QUEST_TEMPLATES, initializeQuests, updateQuestProgress }}
+      value={{ quests, loading, initializing, QUEST_TEMPLATES, initializeQuests, updateQuestProgress }}
     >
       {children}
     </QuestContext.Provider>
