@@ -131,9 +131,11 @@ export function QuestProvider({ children }) {
         newProgress = Math.min(newProgress, quest.target);
 
       } else if (quest.questType === "streak") {
-        // Count consecutive days from Sunday where daily total <= dailyBudget
+        // Count consecutive days from Sunday up to TODAY where daily total <= dailyBudget
+        const todayStr = getPHDateString();
+        const pastAndTodayDates = weekDates.filter((d) => d <= todayStr);
         let streak = 0;
-        for (const date of weekDates) {
+        for (const date of pastAndTodayDates) {
           const dayTotal = weekExpenses
             .filter((e) => e.date === date)
             .reduce((sum, e) => sum + Number(e.amount), 0);
@@ -146,10 +148,14 @@ export function QuestProvider({ children }) {
         newProgress = streak;
 
       } else if (quest.questType === "zero_splurge") {
-        // Check if any day this week had zero "Others" spending
-        const hadZeroDay = weekDates.some((date) => {
-          const othersTotal = weekExpenses
-            .filter((e) => e.date === date && e.category === "Others")
+        // A day qualifies only if it has at least 1 expense AND none are in "Others"
+        const todayStr = getPHDateString();
+        const pastAndTodayDates = weekDates.filter((d) => d <= todayStr);
+        const hadZeroDay = pastAndTodayDates.some((date) => {
+          const dayExpenses = weekExpenses.filter((e) => e.date === date);
+          if (dayExpenses.length === 0) return false; // Unlogged days don't count
+          const othersTotal = dayExpenses
+            .filter((e) => e.category === "Others")
             .reduce((sum, e) => sum + Number(e.amount), 0);
           return othersTotal === 0;
         });
