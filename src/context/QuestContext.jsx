@@ -92,13 +92,19 @@ export function QuestProvider({ children }) {
     const currentWeek = getCurrentWeekStart();
 
     for (const quest of questData) {
+      const updatePayload = {};
+
+      // One-time migration: fix stale Frugal Foodie target from ₱200 → ₱1,000
+      if (quest.questType === "category" && quest.target === 200) {
+        updatePayload.target = 1000;
+        updatePayload.description = "Spend ≤ ₱1,000 on Food this week";
+      }
+
       // If this quest's week is in the past, it needs a reset
       if (quest.weekStart && quest.weekStart < currentWeek) {
-        const updatePayload = {
-          weekStart: currentWeek,
-          progress: 0,
-          completed: false,
-        };
+        updatePayload.weekStart = currentWeek;
+        updatePayload.progress = 0;
+        updatePayload.completed = false;
 
         // Only record history entry if it was actually completed last week
         if (quest.completed) {
@@ -108,7 +114,10 @@ export function QuestProvider({ children }) {
             completedAt: getPHDateString(),
           });
         }
+      }
 
+      // Only write to Firestore if there's something to update
+      if (Object.keys(updatePayload).length > 0) {
         await updateDoc(doc(db, "quests", quest.id), updatePayload);
       }
     }
