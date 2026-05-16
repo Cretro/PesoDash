@@ -94,12 +94,6 @@ export function QuestProvider({ children }) {
     for (const quest of questData) {
       const updatePayload = {};
 
-      // One-time migration: fix stale Frugal Foodie target from ₱200 → ₱1,000
-      if (quest.questType === "category" && quest.target === 200) {
-        updatePayload.target = 1000;
-        updatePayload.description = "Spend ≤ ₱1,000 on Food this week";
-      }
-
       // If this quest's week is in the past, it needs a reset
       if (quest.weekStart && quest.weekStart < currentWeek) {
         updatePayload.weekStart = currentWeek;
