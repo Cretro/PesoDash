@@ -1,0 +1,65 @@
+/* ── App Shell ────────────────────────────────────────────────── */
+.app-shell { min-height: 100vh; background: var(--pd-bg); }
+
+/* ── Fixed TopBar ─────────────────────────────────────────────── */
+.top-bar {
+  position: fixed; top: 0; left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 480px; z-index: 1000;
+  background: rgba(15,23,42,.95); backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--pd-border);
+  display: flex; align-items: center; gap: .5rem;
+  padding: .875rem 1.25rem;
+}
+.top-bar__title { font-size: 1.1rem; font-weight: 700; color: #f8fafc; margin: 0; }
+
+/* ── Fixed BottomNav ──────────────────────────────────────────── */
+.bottom-nav {
+  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 480px; z-index: 1000;
+  background: rgba(15,23,42,.95); backdrop-filter: blur(16px);
+  border-top: 1px solid var(--pd-border);
+  display: flex; justify-content: space-around; align-items: center;
+  padding: .5rem 0 calc(.5rem + env(safe-area-inset-bottom));
+}
+.bottom-nav__item {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  text-decoration: none; color: var(--pd-muted);
+  min-width: 44px; min-height: 44px; justify-content: center;
+  padding: .25rem .75rem; border-radius: .75rem;
+  transition: color .2s; position: relative;
+}
+.bottom-nav__item.active { color: var(--pd-primary); }
+.bottom-nav__icon  { font-size: 1.3rem; line-height: 1; }
+.bottom-nav__label { font-size: .65rem; font-weight: 500; }
+.bottom-nav__badge {
+  position: absolute; top: 4px; right: 8px;
+  width: 8px; height: 8px; border-radius: 50%; background: #ef4444;
+}
+
+/* ── FAB ──────────────────────────────────────────────────────── */
+.fab {
+  position: fixed; bottom: 86px;
+  right: max(1rem, calc(50% - 224px));
+  z-index: 999;
+}
+
+/* ── Page Content (inside fixed nav) ─────────────────────────── */
+.app-main    { padding-top: 60px; padding-bottom: 80px; }
+.page-content { padding: 1.25rem; max-width: 480px; margin: 0 auto; box-sizing: border-box; }
+
+/* ── Offcanvas bottom sheet handle ───────────────────────────── */
+.offcanvas-handle {
+  width: 40px; height: 4px; background: rgba(255,255,255,.2);
+  border-radius: 2px; margin: .75rem auto .25rem;
+}
+
+/* ── Phone mockup on landing ──────────────────────────────────── */
+.phone-mock {
+  background: rgba(30,41,59,.8);
+  border: 1px solid rgba(99,102,241,.2);
+  border-radius: 2rem; padding: 1.5rem 1rem;
+  box-shadow: 0 20px 60px rgba(0,0,0,.5);
+  width: 220px; margin: 0 auto;
+}
+.phone-mock-bar { height: 6px; background: rgba(255,255,255,.1); border-radius: 3px; overflow: hidden; }
+.phone-mock-bar-fill { height: 100%; background: linear-gradient(90deg,#6366f1,#ec4899); border-radius: 3px; }
