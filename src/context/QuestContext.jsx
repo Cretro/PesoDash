@@ -9,6 +9,7 @@ import {
   doc,
   serverTimestamp,
   arrayUnion,
+  increment,
 } from "firebase/firestore";
 import { db } from "../firebase/firebase";
 import { useAuth } from "./AuthContext";
@@ -170,6 +171,13 @@ export function QuestProvider({ children }) {
           progress: newProgress,
           completed: isCompleted,
         });
+
+        // Award points when a quest is newly completed
+        if (isCompleted && !quest.completed) {
+          await updateDoc(doc(db, "users", currentUser.uid), {
+            totalPoints: increment(quest.pointsReward),
+          });
+        }
       }
     }
   }
