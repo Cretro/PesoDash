@@ -46,8 +46,8 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <QuestProvider>
-          <ExpenseProvider>
+        <ExpenseProvider>
+          <QuestProvider>
             <FriendProvider>
               <div className="app-shell">
                 <Routes>
@@ -65,8 +65,8 @@ export default function App() {
                 </Routes>
               </div>
             </FriendProvider>
-          </ExpenseProvider>
-        </QuestProvider>
+          </QuestProvider>
+        </ExpenseProvider>
       </AuthProvider>
     </BrowserRouter>
   );

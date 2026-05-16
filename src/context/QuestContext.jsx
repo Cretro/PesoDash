@@ -12,6 +12,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase/firebase";
 import { useAuth } from "./AuthContext";
+import { useExpenses } from "./ExpenseContext";
 
 const QuestContext = createContext(null);
 
@@ -59,11 +60,24 @@ function getCurrentWeekStart() {
   return getPHDateString(ph);
 }
 
+/** Returns all dates in the current week (Sun–Sat) as "YYYY-MM-DD" strings in PH Time */
+function getCurrentWeekDates() {
+  const weekStart = getCurrentWeekStart();
+  const dates = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(weekStart + "T00:00:00");
+    d.setDate(d.getDate() + i);
+    dates.push(getPHDateString(d));
+  }
+  return dates;
+}
+
 export function QuestProvider({ children }) {
   const [quests, setQuests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [initializing, setInitializing] = useState(false);
-  const { currentUser } = useAuth();
+  const { currentUser, userProfile } = useAuth();
+  const { expenses } = useExpenses();
 
   useEffect(() => {
     if (!currentUser) return;
@@ -86,6 +100,73 @@ export function QuestProvider({ children }) {
     });
     return unsub;
   }, [currentUser]);
+
+  /** Auto-track quest progress whenever expenses or quests change */
+  useEffect(() => {
+    if (!quests.length || !expenses.length) return;
+    syncQuestProgress(quests, expenses);
+  }, [expenses, quests.map((q) => q.id).join(",")]);
+
+  /** Calculates the correct progress for each active quest and writes it to Firestore */
+  async function syncQuestProgress(questData, expenseData) {
+    const weekStart = getCurrentWeekStart();
+    const weekDates = getCurrentWeekDates();
+    const dailyBudget = userProfile?.dailyBudget || 300;
+
+    // Only expenses logged this week
+    const weekExpenses = expenseData.filter((e) => weekDates.includes(e.date));
+
+    for (const quest of questData) {
+      if (quest.completed) continue; // Don't touch already-completed quests
+
+      let newProgress = 0;
+
+      if (quest.questType === "category") {
+        // Sum all Food expenses this week
+        newProgress = weekExpenses
+          .filter((e) => e.category === quest.category)
+          .reduce((sum, e) => sum + Number(e.amount), 0);
+
+        // Cap at target (overspending still means quest is failed, not super-complete)
+        newProgress = Math.min(newProgress, quest.target);
+
+      } else if (quest.questType === "streak") {
+        // Count consecutive days from Sunday where daily total <= dailyBudget
+        let streak = 0;
+        for (const date of weekDates) {
+          const dayTotal = weekExpenses
+            .filter((e) => e.date === date)
+            .reduce((sum, e) => sum + Number(e.amount), 0);
+          if (dayTotal <= dailyBudget) {
+            streak++;
+          } else {
+            break; // Streak is broken
+          }
+        }
+        newProgress = streak;
+
+      } else if (quest.questType === "zero_splurge") {
+        // Check if any day this week had zero "Others" spending
+        const hadZeroDay = weekDates.some((date) => {
+          const othersTotal = weekExpenses
+            .filter((e) => e.date === date && e.category === "Others")
+            .reduce((sum, e) => sum + Number(e.amount), 0);
+          return othersTotal === 0;
+        });
+        newProgress = hadZeroDay ? 1 : 0;
+      }
+
+      const isCompleted = newProgress >= quest.target;
+
+      // Only write to Firestore if something actually changed
+      if (newProgress !== quest.progress || isCompleted !== quest.completed) {
+        await updateDoc(doc(db, "quests", quest.id), {
+          progress: newProgress,
+          completed: isCompleted,
+        });
+      }
+    }
+  }
 
   /** Resets quests that belong to a previous week, preserving completion history */
   async function checkAndResetQuests(questData) {
