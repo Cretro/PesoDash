@@ -5,7 +5,7 @@ import {
 } from "recharts";
 import { useExpenses } from "../../context/ExpenseContext";
 import { useAuth }     from "../../context/AuthContext";
-import { fetchAdvice } from "../../api/adviceSlip";
+import { fetchExchangeRates, CURRENCIES } from "../../api/currencyApi";
 import { formatCurrency } from "../../utils/formatters";
 
 const CAT_COLORS = { Food: "#6366f1", Commute: "#ec4899", "School Expenses": "#f59e0b", Others: "#10b981" };
@@ -13,12 +13,18 @@ const CATS = ["Food", "Commute", "School Expenses", "Others"];
 const TT_STYLE = { background: "#1e293b", border: "1px solid rgba(255,255,255,.1)", borderRadius: ".75rem", color: "#f8fafc", fontSize: ".8rem" };
 
 export default function Analytics() {
-  const { expenses }   = useExpenses();
+  const { expenses }    = useExpenses();
   const { userProfile } = useAuth();
-  const [advice, setAdvice] = useState("");
+  const [rates, setRates] = useState(null);
+  const [ratesDate, setRatesDate] = useState("");
+  const [ratesError, setRatesError] = useState(false);
   const dailyBudget = userProfile?.dailyBudget || 300;
 
-  useEffect(() => { fetchAdvice().then(setAdvice); }, []);
+  useEffect(() => {
+    fetchExchangeRates()
+      .then(({ date, rates }) => { setRates(rates); setRatesDate(date); })
+      .catch(() => setRatesError(true));
+  }, []);
 
   const trendData = useMemo(() => {
     const days = [];
@@ -50,15 +56,31 @@ export default function Analytics() {
   return (
     <div className="page-content">
 
-      {/* Tip card */}
-      {advice && (
-        <div className="card rounded-3 mb-3" style={{ background: "rgba(99,102,241,.08)", border: "1px solid rgba(99,102,241,.2)" }}>
-          <div className="card-body d-flex gap-3 align-items-start py-3">
-            <span style={{ fontSize: "1.2rem", flexShrink: 0 }}>💡</span>
-            <p className="mb-0 small fst-italic" style={{ color: "#c4b5fd" }}>"{advice}"</p>
+      {/* Exchange Rate Widget — Frankfurter API */}
+      <div className="card rounded-3 mb-3" style={{ background: "rgba(99,102,241,.08)", border: "1px solid rgba(99,102,241,.2)" }}>
+        <div className="card-body py-3">
+          <div className="d-flex align-items-center justify-content-between mb-2">
+            <span className="fw-bold text-white small">🌐 PHP Exchange Rates</span>
+            {ratesDate && <span className="text-secondary" style={{ fontSize: ".7rem" }}>Updated: {ratesDate}</span>}
           </div>
+          {ratesError ? (
+            <p className="text-secondary small mb-0">Could not load rates. Check your connection.</p>
+          ) : !rates ? (
+            <p className="text-secondary small mb-0">Loading rates…</p>
+          ) : (
+            <div className="row g-1">
+              {CURRENCIES.map((cur) => (
+                <div className="col-12" key={cur.code}>
+                  <div className="d-flex align-items-center justify-content-between py-1" style={{ borderBottom: "1px solid rgba(255,255,255,.04)" }}>
+                    <span className="small">{cur.flag} <span className="fw-semibold text-white">{cur.code}</span> <span className="text-secondary" style={{ fontSize: ".75rem" }}>{cur.name}</span></span>
+                    <span className="fw-bold" style={{ color: "#818cf8", fontSize: ".875rem" }}>₱{Number(rates[cur.code]).toLocaleString()}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-      )}
+      </div>
 
       {/* Summary — Bootstrap grid */}
       <div className="row g-2 mb-3">

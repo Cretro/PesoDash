@@ -4,6 +4,7 @@ import { doc, updateDoc } from "firebase/firestore";
 import { db } from "../../firebase/firebase";
 import { useAuth }    from "../../context/AuthContext";
 import { useFriends } from "../../context/FriendContext";
+import Avatar from "../../components/Avatar/Avatar";
 
 export default function Profile() {
   const { currentUser, userProfile, logout, setUserProfile } = useAuth();
@@ -44,9 +45,8 @@ export default function Profile() {
 
       {/* Avatar + info */}
       <div className="text-center mb-4">
-        <div className="rounded-circle d-inline-flex align-items-center justify-content-center fw-black text-white mb-3"
-          style={{ width: 80, height: 80, fontSize: "2rem", background: "linear-gradient(135deg,#6366f1,#8b5cf6)", boxShadow: "0 0 0 4px rgba(99,102,241,.25)" }}>
-          {currentUser?.displayName?.[0]?.toUpperCase() || "?"}
+        <div className="d-inline-block mb-3" style={{ borderRadius: "50%", boxShadow: "0 0 0 4px rgba(99,102,241,.3)" }}>
+          <Avatar name={currentUser?.displayName || "User"} size={80} />
         </div>
         <h2 className="fw-black text-white mb-0">{currentUser?.displayName}</h2>
         <p className="text-secondary small mb-0">{currentUser?.email}</p>
@@ -114,10 +114,7 @@ export default function Profile() {
               <ul className="list-group rounded-3" style={{ overflow: "hidden" }}>
                 {incoming.map((f) => (
                   <li key={f.id} className="list-group-item d-flex align-items-center gap-3 px-3 py-2">
-                    <div className="rounded-circle d-flex align-items-center justify-content-center fw-bold text-white"
-                      style={{ width: 36, height: 36, background: "linear-gradient(135deg,#6366f1,#8b5cf6)", fontSize: ".875rem", flexShrink: 0 }}>
-                      {f.friendName?.[0]?.toUpperCase() || "?"}
-                    </div>
+                    <Avatar name={f.friendName || "User"} size={36} />
                     <div className="flex-fill">
                       <p className="fw-semibold text-white mb-0 small">{f.friendName}</p>
                       <p className="text-secondary mb-0" style={{ fontSize: ".7rem" }}>{f.friendEmail}</p>
@@ -139,10 +136,7 @@ export default function Profile() {
               <ul className="list-group rounded-3" style={{ overflow: "hidden" }}>
                 {accepted.map((f) => (
                   <li key={f.id} className="list-group-item d-flex align-items-center gap-3 px-3 py-2">
-                    <div className="rounded-circle d-flex align-items-center justify-content-center fw-bold text-white"
-                      style={{ width: 36, height: 36, background: "linear-gradient(135deg,#6366f1,#8b5cf6)", fontSize: ".875rem", flexShrink: 0 }}>
-                      {f.friendName?.[0]?.toUpperCase() || "?"}
-                    </div>
+                    <Avatar name={f.friendName || "User"} size={36} />
                     <div>
                       <p className="fw-semibold text-white mb-0 small">{f.friendName}</p>
                       <p className="text-secondary mb-0" style={{ fontSize: ".7rem" }}>{f.friendEmail}</p>
@@ -164,10 +158,7 @@ export default function Profile() {
               <ul className="list-group rounded-3" style={{ overflow: "hidden" }}>
                 {pending.map((f) => (
                   <li key={f.id} className="list-group-item d-flex align-items-center gap-3 px-3 py-2">
-                    <div className="rounded-circle d-flex align-items-center justify-content-center fw-bold text-white"
-                      style={{ width: 36, height: 36, background: "rgba(99,102,241,.3)", fontSize: ".875rem", flexShrink: 0 }}>
-                      {f.friendName?.[0]?.toUpperCase() || "?"}
-                    </div>
+                    <Avatar name={f.friendName || "User"} size={36} />
                     <div className="flex-fill">
                       <p className="fw-semibold text-white mb-0 small">{f.friendName}</p>
                     </div>

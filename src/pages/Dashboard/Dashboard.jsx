@@ -1,11 +1,12 @@
 import { useMemo } from "react";
 import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
+import { FiBarChart2 } from "react-icons/fi";
 import { useAuth } from "../../context/AuthContext";
 import { useExpenses } from "../../context/ExpenseContext";
 import { useQuests } from "../../context/QuestContext";
 import { formatCurrency, getTodayString, sumExpenses } from "../../utils/formatters";
-import { Link } from "react-router-dom";
-import { FiBarChart2 } from "react-icons/fi";
+import Avatar from "../../components/Avatar/Avatar";
 
 function CategoryEmoji({ cat }) {
   const map = { Food: "🍱", Commute: "🚌", "School Expenses": "📚", Others: "🛍️" };
@@ -15,23 +16,23 @@ function CategoryEmoji({ cat }) {
 export default function Dashboard() {
   const { currentUser, userProfile } = useAuth();
   const { expenses } = useExpenses();
-  const { quests }   = useQuests();
+  const { quests } = useQuests();
 
   const dailyBudget = userProfile?.dailyBudget || 300;
-  const todayStr    = getTodayString();
+  const todayStr = getTodayString();
 
   const todayExpenses = useMemo(() => expenses.filter((e) => e.date === todayStr), [expenses, todayStr]);
-  const todayTotal    = sumExpenses(todayExpenses);
-  const pct           = Math.min((todayTotal / dailyBudget) * 100, 100);
-  const remaining     = Math.max(dailyBudget - todayTotal, 0);
-  const isOver        = todayTotal > dailyBudget;
+  const todayTotal = sumExpenses(todayExpenses);
+  const pct = Math.min((todayTotal / dailyBudget) * 100, 100);
+  const remaining = Math.max(dailyBudget - todayTotal, 0);
+  const isOver = todayTotal > dailyBudget;
 
   const recentExpenses = expenses.slice(0, 5);
-  const activeQuest    = quests.find((q) => !q.completed);
-  const name           = currentUser?.displayName?.split(" ")[0] || "there";
+  const activeQuest = quests.find((q) => !q.completed);
+  const name = currentUser?.displayName?.split(" ")[0] || "there";
 
-  const circ     = 2 * Math.PI * 40;
-  const dashOff  = circ * (1 - pct / 100);
+  const circ = 2 * Math.PI * 40;
+  const dashOff = circ * (1 - pct / 100);
 
   return (
     <div className="page-content">
@@ -39,9 +40,12 @@ export default function Dashboard() {
 
         {/* Greeting row */}
         <div className="d-flex align-items-center justify-content-between mb-3">
-          <div>
-            <p className="text-secondary small mb-0">Good day 👋</p>
-            <h2 className="fw-black text-white mb-0">Hey, {name}!</h2>
+          <div className="d-flex align-items-center gap-3">
+            <Avatar name={currentUser?.displayName || "User"} size={48} />
+            <div>
+              <p className="text-secondary small mb-0">Good day 👋</p>
+              <h2 className="fw-black text-white mb-0">Hey, {name}!</h2>
+            </div>
           </div>
           <span className="badge rounded-pill" style={{ background: "rgba(99,102,241,.15)", border: "1px solid rgba(99,102,241,.3)", color: "#818cf8", fontSize: ".8rem", padding: ".4rem .875rem" }}>
             ⭐ {userProfile?.totalPoints || 0} pts
@@ -92,7 +96,7 @@ export default function Dashboard() {
           <div className="card rounded-3 glass-card" style={{ background: "rgba(99,102,241,.12)", border: "1px solid rgba(99,102,241,.2)" }}>
             <div className="card-body d-flex align-items-center justify-content-between py-2">
               <div className="d-flex align-items-center gap-2">
-                <FiBarChart2 className="text-primary" />
+                <FiBarChart2 style={{ color: "#818cf8" }} />
                 <span className="fw-bold text-white small">View Spending Analytics</span>
               </div>
               <span className="text-secondary small">→</span>
@@ -141,17 +145,17 @@ export default function Dashboard() {
           {recentExpenses.length === 0
             ? <div className="card rounded-3 glass-card"><div className="card-body text-center text-secondary small py-4">No expenses yet. Tap + to add one!</div></div>
             : <ul className="list-group list-group-flush rounded-3" style={{ overflow: "hidden" }}>
-                {recentExpenses.map((e) => (
-                  <li key={e.id} className="list-group-item d-flex align-items-center gap-3 px-3 py-2">
-                    <span style={{ fontSize: "1.2rem" }}><CategoryEmoji cat={e.category} /></span>
-                    <div className="flex-fill">
-                      <p className="fw-semibold text-white mb-0 small">{e.note || e.category}</p>
-                      <p className="text-secondary mb-0" style={{ fontSize: ".7rem" }}>{e.date}</p>
-                    </div>
-                    <span className="fw-bold text-danger small">{formatCurrency(e.amount)}</span>
-                  </li>
-                ))}
-              </ul>
+              {recentExpenses.map((e) => (
+                <li key={e.id} className="list-group-item d-flex align-items-center gap-3 px-3 py-2">
+                  <span style={{ fontSize: "1.2rem" }}><CategoryEmoji cat={e.category} /></span>
+                  <div className="flex-fill">
+                    <p className="fw-semibold text-white mb-0 small">{e.note || e.category}</p>
+                    <p className="text-secondary mb-0" style={{ fontSize: ".7rem" }}>{e.date}</p>
+                  </div>
+                  <span className="fw-bold text-danger small">{formatCurrency(e.amount)}</span>
+                </li>
+              ))}
+            </ul>
           }
         </div>
 

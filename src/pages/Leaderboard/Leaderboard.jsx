@@ -3,6 +3,7 @@ import { collection, query, orderBy, limit, onSnapshot, doc, getDoc } from "fire
 import { db } from "../../firebase/firebase";
 import { useAuth } from "../../context/AuthContext";
 import { useFriends } from "../../context/FriendContext";
+import Avatar from "../../components/Avatar/Avatar";
 
 const MEDALS = ["🥇", "🥈", "🥉"];
 
@@ -15,10 +16,7 @@ function RankRow({ user, rank, isMe }) {
       <span className="fw-bold" style={{ minWidth: 32, color: rank <= 3 ? undefined : "#64748b", fontSize: ".9rem" }}>
         {rank <= 3 ? MEDALS[rank - 1] : `#${rank}`}
       </span>
-      <div className="d-flex align-items-center justify-content-center rounded-circle fw-bold text-white"
-        style={{ width: 36, height: 36, background: "linear-gradient(135deg,#6366f1,#8b5cf6)", fontSize: ".875rem", flexShrink: 0 }}>
-        {user.displayName?.[0]?.toUpperCase() || "?"}
-      </div>
+      <Avatar name={user.displayName || "User"} size={36} />
       <div className="flex-fill">
         <p className="fw-semibold text-white mb-0 small">{user.displayName}{isMe ? " (You)" : ""}</p>
         <p className="text-secondary mb-0" style={{ fontSize: ".7rem" }}>🔥 {user.currentStreak || 0}-day streak</p>
@@ -42,10 +40,8 @@ function Podium({ users }) {
           {order.map((u, i) => (
             <div key={u?.id} className="d-flex flex-column align-items-center gap-1"
               style={{ transform: ranks[i] === 1 ? "translateY(-10px)" : undefined }}>
-              <div className="d-flex align-items-center justify-content-center rounded-circle fw-bold text-white"
-                style={{ width: sizes[i], height: sizes[i], background: `linear-gradient(135deg,${colors[i]},${colors[i]}aa)`, fontSize: ranks[i] === 1 ? "1.3rem" : "1rem" }}>
-                {u?.displayName?.[0]?.toUpperCase() || "?"}
-              </div>
+              <Avatar name={u?.displayName || "User"} size={sizes[i]}
+                style={{ border: `2px solid ${colors[i]}`, borderRadius: "50%" }} />
               <span style={{ fontSize: "1.1rem" }}>{MEDALS[ranks[i] - 1]}</span>
               <span className="fw-bold text-white" style={{ fontSize: ".75rem" }}>{u?.displayName?.split(" ")[0]}</span>
               <span className="text-secondary" style={{ fontSize: ".7rem" }}>{u?.totalPoints || 0} pts</span>
