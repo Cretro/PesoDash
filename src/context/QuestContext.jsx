@@ -43,11 +43,20 @@ const QUEST_TEMPLATES = [
   },
 ];
 
-/** Returns the current week's Monday as a "YYYY-MM-DD" string */
+/** Returns a "YYYY-MM-DD" string for the current date in Philippine Time */
+function getPHDateString(date = new Date()) {
+  const ph = new Date(date.toLocaleString("en-US", { timeZone: "Asia/Manila" }));
+  const y = ph.getFullYear();
+  const m = String(ph.getMonth() + 1).padStart(2, "0");
+  const d = String(ph.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+/** Returns the current week's Sunday as a "YYYY-MM-DD" string in Philippine Time */
 function getCurrentWeekStart() {
-  const now = new Date();
-  now.setDate(now.getDate() - now.getDay()); // Sunday = start of week
-  return now.toISOString().split("T")[0];
+  const ph = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Manila" }));
+  ph.setDate(ph.getDate() - ph.getDay()); // Sunday = start of week
+  return getPHDateString(ph);
 }
 
 export function QuestProvider({ children }) {
@@ -96,7 +105,7 @@ export function QuestProvider({ children }) {
           updatePayload.timesCompleted = (quest.timesCompleted || 0) + 1;
           updatePayload.completionHistory = arrayUnion({
             weekStart: quest.weekStart,
-            completedAt: new Date().toISOString().split("T")[0],
+            completedAt: getPHDateString(),
           });
         }
 
