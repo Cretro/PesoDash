@@ -1,8 +1,8 @@
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useExpenses } from "../../context/ExpenseContext";
-import { formatCurrency, formatDate, groupExpensesByDate } from "../../utils/formatters";
-import ExpenseForm from "../../components/ExpenseForm/ExpenseForm";
+import { useExpenses } from "../context/ExpenseContext";
+import { formatCurrency, formatDate, groupExpensesByDate } from "../utils/formatters";
+import ExpenseForm from "../components/ExpenseForm";
 
 const CATS    = ["All", "Food", "Commute", "School Expenses", "Others"];
 const CAT_EMO = { Food: "🍱", Commute: "🚌", "School Expenses": "📚", Others: "🛍️" };
@@ -12,7 +12,7 @@ function BottomSheet({ show, onClose, title, children }) {
     <AnimatePresence>
       {show && (
         <motion.div
-          className="position-fixed top-0 start-0 end-0 bottom-0 d-flex align-items-end justify-content-center"
+          className="position-fixed top-0 start-0 end-0 bottom-0 d-flex align-items-end align-items-lg-center justify-content-center px-3 px-lg-0"
           style={{ background: "rgba(0,0,0,.6)", zIndex: 1100 }}
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           onClick={onClose}
@@ -22,9 +22,9 @@ function BottomSheet({ show, onClose, title, children }) {
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="card rounded-top-4 rounded-bottom-0 border-0">
+            <div className="card rounded-top-4 rounded-bottom-0 border-0 responsive-modal-card">
               <div className="card-body pb-5">
-                <div className="offcanvas-handle" />
+                <div className="offcanvas-handle d-lg-none" />
                 <h2 className="fs-5 fw-bold text-white mb-3">{title}</h2>
                 {children}
               </div>
@@ -50,7 +50,7 @@ export default function Expenses() {
   const dates   = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
 
   return (
-    <div className="page-content">
+    <div className="page-content" style={{ maxWidth: 720 }}>
 
       {/* Filter chips — Bootstrap nav-pills */}
       <ul className="nav nav-pills gap-2 mb-3 flex-nowrap" style={{ overflowX: "auto", scrollbarWidth: "none" }}>

@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { collection, query, orderBy, limit, onSnapshot, doc, getDoc } from "firebase/firestore";
-import { db } from "../../firebase/firebase";
-import { useAuth } from "../../context/AuthContext";
-import { useFriends } from "../../context/FriendContext";
-import Avatar from "../../components/Avatar/Avatar";
+import { db } from "../firebase/firebase";
+import { useAuth } from "../context/AuthContext";
+import { useFriends } from "../context/FriendContext";
+import Avatar from "../components/Avatar";
 
 const MEDALS = ["🥇", "🥈", "🥉"];
 
@@ -95,7 +95,7 @@ export default function Leaderboard() {
   if (loading) return <div className="page-content text-secondary text-center pt-5">Loading rankings…</div>;
 
   return (
-    <div className="page-content">
+    <div className="page-content" style={{ maxWidth: 720 }}>
 
       {/* Tab switcher */}
       <ul className="nav nav-pills nav-fill mb-3 p-1 rounded-3" style={{ background: "rgba(255,255,255,.04)" }}>

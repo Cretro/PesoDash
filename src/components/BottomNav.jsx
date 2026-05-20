@@ -1,6 +1,6 @@
 import { NavLink } from "react-router-dom";
 import { FiHome, FiList, FiBarChart2, FiAward, FiUser } from "react-icons/fi";
-import { useFriends } from "../../context/FriendContext";
+import { useFriends } from "../context/FriendContext";
 
 const tabs = [
   { to: "/dashboard",   icon: <FiHome />,     label: "Home" },
@@ -14,7 +14,7 @@ export default function BottomNav() {
   const { pendingCount } = useFriends();
 
   return (
-    <nav className="bottom-nav">
+    <nav className="bottom-nav d-lg-none">
       {tabs.map((tab) => (
         <NavLink
           key={tab.to}

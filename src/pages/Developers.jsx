@@ -9,7 +9,7 @@ const DEVELOPERS = [
 
 export default function Developers() {
   return (
-    <div className="page-content">
+    <div className="page-content" style={{ maxWidth: 720 }}>
 
       {/* Header */}
       <div className="text-center mb-4">

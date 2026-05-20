@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../context/AuthContext";
 
 export default function Login() {
   const { login } = useAuth();
@@ -25,9 +25,9 @@ export default function Login() {
   }
 
   return (
-    <div className="d-flex align-items-end justify-content-center" style={{ minHeight: "100vh", background: "linear-gradient(160deg,#0f172a,#1a103d)", padding: "1rem" }}>
+    <div className="d-flex align-items-end align-items-lg-center justify-content-center" style={{ minHeight: "100vh", background: "linear-gradient(160deg,#0f172a,#1a103d)", padding: "1rem" }}>
       <motion.div className="w-100" style={{ maxWidth: 480 }} initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-        <div className="card rounded-top-4 rounded-bottom-0 border-0">
+        <div className="card rounded-top-4 rounded-bottom-0 border-0 responsive-modal-card">
           <div className="card-body px-4 pt-4 pb-5">
             <div className="text-center mb-3">
               <div style={{ fontSize: "2.5rem" }}>💰</div>

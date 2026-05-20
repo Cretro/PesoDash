@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { FiPlus, FiX } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
-import ExpenseForm from "../ExpenseForm/ExpenseForm";
+import ExpenseForm from "./ExpenseForm";
 
 export default function FAB() {
   const [open, setOpen] = useState(false);
@@ -25,7 +25,7 @@ export default function FAB() {
       <AnimatePresence>
         {open && (
           <motion.div
-            className="position-fixed top-0 start-0 end-0 bottom-0 d-flex align-items-end justify-content-center"
+            className="position-fixed top-0 start-0 end-0 bottom-0 d-flex align-items-end align-items-lg-center justify-content-center px-3 px-lg-0"
             style={{ background: "rgba(0,0,0,.6)", zIndex: 1100 }}
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={() => setOpen(false)}
@@ -37,9 +37,9 @@ export default function FAB() {
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="card rounded-top-4 rounded-bottom-0 border-0">
+              <div className="card rounded-top-4 rounded-bottom-0 border-0 responsive-modal-card">
                 <div className="card-body pb-5">
-                  <div className="offcanvas-handle" />
+                  <div className="offcanvas-handle d-lg-none" />
                   <div className="d-flex align-items-center justify-content-between mb-3">
                     <h2 className="fs-5 fw-bold mb-0 text-white">Add Expense</h2>
                     <button className="btn btn-sm btn-outline-secondary rounded-circle"

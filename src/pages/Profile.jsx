@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { doc, updateDoc } from "firebase/firestore";
-import { db } from "../../firebase/firebase";
-import { useAuth }    from "../../context/AuthContext";
-import { useFriends } from "../../context/FriendContext";
-import Avatar from "../../components/Avatar/Avatar";
+import { db } from "../firebase/firebase";
+import { useAuth }    from "../context/AuthContext";
+import { useFriends } from "../context/FriendContext";
+import Avatar from "../components/Avatar";
 
 export default function Profile() {
   const { currentUser, userProfile, logout, setUserProfile } = useAuth();
@@ -41,7 +41,7 @@ export default function Profile() {
   }
 
   return (
-    <div className="page-content">
+    <div className="page-content" style={{ maxWidth: 720 }}>
 
       {/* Avatar + info */}
       <div className="text-center mb-4">

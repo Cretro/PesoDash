@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useQuests } from "../../context/QuestContext";
+import { useQuests } from "../context/QuestContext";
 
 export default function Quests() {
   const { quests, loading } = useQuests();
@@ -16,7 +16,7 @@ export default function Quests() {
     return <div className="page-content text-secondary text-center pt-5">Loading quests…</div>;
 
   return (
-    <div className="page-content">
+    <div className="page-content" style={{ maxWidth: 720 }}>
 
       {/* Tab switcher */}
       <ul className="nav nav-pills nav-fill mb-3 p-1 rounded-3" style={{ background: "rgba(255,255,255,.04)" }}>
