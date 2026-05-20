@@ -143,8 +143,10 @@ export function ExpenseProvider({ children }) {
    * 5. If they violated constraints, subtract the points and remove the date from completion history.
    */
   async function auditExpenseCheatLoophole(expenseData) {
-    // 1. Get current date in Manila timezone (Asia/Manila)
-    const ph = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Manila" }));
+    // 1. Get current date in Manila timezone (Asia/Manila) utilizing secure offset
+    const offset = window.__TIME_OFFSET__ || 0;
+    const trueNow = new Date(Date.now() + offset);
+    const ph = new Date(trueNow.toLocaleString("en-US", { timeZone: "Asia/Manila" }));
     const y = ph.getFullYear();
     const m = String(ph.getMonth() + 1).padStart(2, "0");
     const d = String(ph.getDate()).padStart(2, "0");
