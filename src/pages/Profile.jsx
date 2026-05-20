@@ -16,7 +16,7 @@ import Avatar from "../components/Avatar";
  *  - **Social Panel**: Integrates with `FriendContext` to trigger emails lookups and accept/decline invites.
  */
 export default function Profile() {
-  const { currentUser, userProfile, logout, setUserProfile } = useAuth();
+  const { currentUser, userProfile, setUserProfile } = useAuth();
   const { accepted, incoming, pending, sendFriendRequest, acceptRequest, declineRequest } = useFriends();
   const navigate = useNavigate();
 
@@ -30,11 +30,7 @@ export default function Profile() {
   const [friendMsg, setFriendMsg] = useState({ text: "", type: "" });
   const [sending, setSending] = useState(false);
 
-  // Trigger AuthContext signOut function and redirect user back to Landing index page
-  async function handleLogout() {
-    await logout();
-    navigate("/");
-  }
+
 
   // Save the custom daily budget and gender settings back to Firestore
   async function saveSettings() {
@@ -246,10 +242,6 @@ export default function Profile() {
         👨‍💻 Meet the Developers
       </button>
 
-      {/* Logout Trigger */}
-      <button className="btn btn-outline-danger w-100 rounded-3 fw-bold py-3" onClick={handleLogout} id="profile-logout-btn">
-        Sign Out
-      </button>
 
     </div>
   );

@@ -154,4 +154,154 @@
   .responsive-modal-card {
     border-radius: 1rem !important;
   }
+
+  /* Sidebar sign-out button pinned to bottom */
+  .sidebar__signout {
+    margin-top: auto;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+  }
+}
+
+/* ── Sign Out Confirmation Modal ─────────────────────────────── */
+.signout-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(6px);
+  z-index: 2000;
+}
+
+.signout-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2001;
+  padding: 1rem;
+  pointer-events: none;
+}
+
+.signout-modal {
+  pointer-events: auto;
+  background: var(--pd-surface);
+  border: 1px solid var(--pd-border);
+  border-radius: 1.25rem;
+  padding: 2rem 1.75rem 1.5rem;
+  width: 100%;
+  max-width: 340px;
+  text-align: center;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6), 0 8px 20px rgba(0, 0, 0, 0.4);
+}
+
+.signout-modal__icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(217, 83, 79, 0.12);
+  color: var(--pd-alert);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  margin: 0 auto 1rem;
+  border: 1px solid rgba(217, 83, 79, 0.2);
+}
+
+.signout-modal__title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #f8fafc;
+  margin: 0 0 0.5rem;
+}
+
+.signout-modal__desc {
+  font-size: 0.875rem;
+  color: var(--pd-muted);
+  margin: 0 0 1.5rem;
+  line-height: 1.5;
+}
+
+.signout-modal__actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.signout-modal__btn {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+}
+
+.signout-modal__btn--cancel {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--pd-text);
+  border: 1px solid var(--pd-border);
+}
+.signout-modal__btn--cancel:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.signout-modal__btn--confirm {
+  background: var(--pd-alert);
+  color: #ffffff;
+}
+.signout-modal__btn--confirm:hover {
+  background: #c9433f;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(217, 83, 79, 0.4);
+}
+.signout-modal__btn--confirm:active {
+  transform: translateY(0);
+}
+
+/* ── TopBar Sign Out Button ──────────────────────────────────── */
+.topbar-signout-btn {
+  background: none;
+  border: none;
+  color: var(--pd-muted);
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0.35rem;
+  border-radius: 0.5rem;
+  transition: color 0.2s, background 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+}
+.topbar-signout-btn:hover {
+  color: var(--pd-alert);
+  background: rgba(217, 83, 79, 0.1);
+}
+
+/* ── Sidebar Sign Out Button ─────────────────────────────────── */
+.sidebar-signout-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  border-radius: 0.75rem;
+  background: none;
+  border: 1px solid transparent;
+  color: var(--pd-muted);
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: all 0.2s ease-in-out;
+}
+.sidebar-signout-btn:hover {
+  color: var(--pd-alert);
+  background: rgba(217, 83, 79, 0.08);
+  border-color: rgba(217, 83, 79, 0.2);
 }
