@@ -22,6 +22,7 @@ export default function Profile() {
 
   // Local configurations
   const [budget, setBudget] = useState(userProfile?.dailyBudget || 300);
+  const [budgetError, setBudgetError] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [friendEmail, setFriendEmail] = useState("");
@@ -36,14 +37,25 @@ export default function Profile() {
 
   // Save the custom daily budget configured in input field back to Firestore
   async function saveBudget() {
+    setBudgetError("");
+    if (!budget || isNaN(budget) || Number(budget) < 1) {
+      setBudgetError("Daily budget must be at least ₱1.");
+      return;
+    }
+
     setSaving(true);
-    // Write value update back to user document in Firestore database
-    await updateDoc(doc(db, "users", currentUser.uid), { dailyBudget: Number(budget) });
-    // Update local React Context state so the change registers immediately throughout the app without page reload
-    setUserProfile({ ...userProfile, dailyBudget: Number(budget) });
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000); // Visual indicator timeout reset
+    try {
+      // Write value update back to user document in Firestore database
+      await updateDoc(doc(db, "users", currentUser.uid), { dailyBudget: Number(budget) });
+      // Update local React Context state so the change registers immediately throughout the app without page reload
+      setUserProfile({ ...userProfile, dailyBudget: Number(budget) });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000); // Visual indicator timeout reset
+    } catch (err) {
+      setBudgetError(err.message || "Failed to save budget. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   // Sends friendship requests to a specific email target
