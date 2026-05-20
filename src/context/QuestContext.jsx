@@ -253,15 +253,20 @@ export function QuestProvider({ children }) {
   }, [currentUser, timeSynced]);
 
   // ==========================================
-  // EFFECT 4: AUTO-INITIALIZE QUESTS FOR NEW USERS
+  // EFFECT 4: DYNAMIC QUEST TEMPLATE SYNCHRONIZATION
   // ==========================================
-  // Seeds quest list from active templates if the user has no quest documents.
+  // Seeds missing quests and cleans up orphaned quests from deleted templates.
   useEffect(() => {
-    if (loading || !currentUser || initializing || initializingRef.current) return;
-    if (quests.length === 0) {
+    if (loading || !currentUser || initializing || initializingRef.current || templates.length === 0) return;
+    
+    const templateTitles = new Set(templates.map((t) => t.title));
+    const hasOrphanedQuests = quests.some((q) => !templateTitles.has(q.title));
+    const hasMissingTemplates = templates.some((t) => !quests.some((q) => q.title === t.title));
+
+    if (hasMissingTemplates || hasOrphanedQuests) {
       initializeQuests();
     }
-  }, [loading, quests.length, currentUser, initializing]);
+  }, [loading, quests, templates, currentUser, initializing]);
 
   // ==========================================
   // EFFECT 5: UNIFIED AUDIT & PROGRESS PIPELINE
@@ -556,9 +561,9 @@ export function QuestProvider({ children }) {
   }
 
   /** 
-   * initializeQuests (SEED SCRIPT)
-   * Executed when a new user registers. Generates individual quest instances
-   * matching active admin templates.
+   * initializeQuests (SEED / SYNC SCRIPT)
+   * Ensures the user has an individual quest instance for every active template.
+   * If an admin adds a new template, this dynamically seeds the missing quest.
    */
   async function initializeQuests() {
     if (!currentUser || initializingRef.current || templates.length === 0) return;
@@ -567,28 +572,46 @@ export function QuestProvider({ children }) {
     try {
       const weekStartStr = getCurrentWeekStart();
       const todayStr = getPHDateString();
+      
+      const existingTitles = new Set(quests.map(q => q.title));
+      const templateTitles = new Set(templates.map(t => t.title));
 
-      for (const template of templates) {
-        await addDoc(collection(db, "quests"), {
-          questType: template.questType,
-          period: template.period || "weekly",
-          title: template.title,
-          description: template.description,
-          target: Number(template.target),
-          pointsReward: Number(template.pointsReward),
-          icon: template.icon,
-          category: template.category || null,
-          uid: currentUser.uid,
-          progress: 0,
-          completed: false,
-          weekStart: weekStartStr,
-          lastResetDate: todayStr,
-          timesCompleted: 0,
-          completionHistory: [],
-          createdAt: serverTimestamp(),
-        });
+      // 1. Clean up orphaned quests whose templates have been deleted by the admin
+      for (const quest of quests) {
+        if (!templateTitles.has(quest.title)) {
+          console.log(`[QuestContext] Dynamic cleanup: Deleting orphaned quest "${quest.title}" (${quest.id})`);
+          await deleteDoc(doc(db, "quests", quest.id));
+        }
       }
+
+      // 2. Seed missing quests from new templates
+      for (const template of templates) {
+        if (!existingTitles.has(template.title)) {
+          console.log(`[QuestContext] Dynamic seeding: Adding quest "${template.title}"`);
+          await addDoc(collection(db, "quests"), {
+            questType: template.questType,
+            period: template.period || "weekly",
+            title: template.title,
+            description: template.description,
+            target: Number(template.target),
+            pointsReward: Number(template.pointsReward),
+            icon: template.icon,
+            category: template.category || null,
+            uid: currentUser.uid,
+            progress: 0,
+            completed: false,
+            weekStart: weekStartStr,
+            lastResetDate: todayStr,
+            timesCompleted: 0,
+            completionHistory: [],
+            createdAt: serverTimestamp(),
+          });
+        }
+      }
+    } catch (err) {
+      console.error("[QuestContext] Failed to initialize/sync missing or orphaned quests:", err);
     } finally {
+      initializingRef.current = false;
       setInitializing(false);
     }
   }
