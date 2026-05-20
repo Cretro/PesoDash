@@ -18,7 +18,11 @@ export function FriendProvider({ children }) {
   // Listens to: /users/{currentUser.uid}/friends/
   // Fires instantly on updates, adding new incoming or outgoing requests to state.
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser) {
+      setFriends([]);
+      setLoading(true);
+      return;
+    }
     const q = collection(db, "users", currentUser.uid, "friends");
     const unsub = onSnapshot(q, (snap) => {
       setFriends(snap.docs.map((d) => ({ id: d.id, ...d.data() })));

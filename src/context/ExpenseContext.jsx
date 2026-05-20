@@ -26,7 +26,11 @@ export function ExpenseProvider({ children }) {
   // Filters documents by matching 'uid == currentUser.uid' so users only see their own data.
   // Orders records in descending order by date so newest purchases show up first.
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser) {
+      setExpenses([]);
+      setLoading(true);
+      return;
+    }
     
     const q = query(
       collection(db, "expenses"),

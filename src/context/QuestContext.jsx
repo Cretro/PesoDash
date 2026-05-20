@@ -130,7 +130,11 @@ export function QuestProvider({ children }) {
   // Effect: Subscribes in real-time to the active user's quests.
   // Query filters the global 'quests' collection to matching UIDs: where("uid", "==", currentUser.uid)
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser) {
+      setQuests([]);
+      setLoading(true);
+      return;
+    }
     const q = query(
       collection(db, "quests"),
       where("uid", "==", currentUser.uid)
@@ -288,6 +292,11 @@ export function QuestProvider({ children }) {
           progress: newProgress,
           completed: isCompleted,
         });
+        if (qType === "streak") {
+          await updateDoc(doc(db, "users", currentUser.uid), {
+            currentStreak: newProgress,
+          });
+        }
       }
     }
   }
@@ -378,6 +387,11 @@ export function QuestProvider({ children }) {
           if (milestonesHit > 0) {
             await updateDoc(doc(db, "users", currentUser.uid), {
               totalPoints: increment(quest.pointsReward * milestonesHit),
+              currentStreak: currentStreak,
+            });
+          } else {
+            await updateDoc(doc(db, "users", currentUser.uid), {
+              currentStreak: currentStreak,
             });
           }
 

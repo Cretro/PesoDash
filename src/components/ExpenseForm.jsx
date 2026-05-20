@@ -39,8 +39,8 @@ export default function ExpenseForm({ onSuccess, initialData = null, expenseId =
     if (!form.amount || isNaN(form.amount) || Number(form.amount) <= 0)
       return "Enter a valid amount.";
     if (!form.date) return "Select a date.";
-    // Prevents logging expenses in the future
-    if (new Date(form.date) > new Date()) return "Date can't be in the future.";
+    // Prevents logging expenses in the future using timezone-safe string comparison
+    if (form.date > getTodayString()) return "Date can't be in the future.";
     return null;
   }
 
