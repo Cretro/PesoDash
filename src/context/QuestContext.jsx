@@ -171,9 +171,7 @@ export function QuestProvider({ children }) {
   const { currentUser, userProfile, isAdmin } = useAuth();
   const { expenses } = useExpenses();
 
-  // Refs to prevent infinite migration loops
-  const templateMigrationDone = useRef(false);
-  const questMigrationDone = useRef(false);
+  // Refs to prevent concurrent initialization loops
   const initializingRef = useRef(false);
 
   // ==========================================
@@ -208,28 +206,10 @@ export function QuestProvider({ children }) {
   // EFFECT 2: REAL-TIME TEMPLATES LISTENER
   // ==========================================
   // Subscribes to the '/questTemplates' collection in Firestore.
-  // Updates the admin template cache. Includes auto-migration rules.
+  // Updates the admin template cache.
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "questTemplates"), (snap) => {
       if (!snap.empty) {
-        // Run database migration to ensure legacy 'targetType' fields are renamed to 'questType'
-        if (!templateMigrationDone.current) {
-          templateMigrationDone.current = true;
-          snap.docs.forEach(async (d) => {
-            const data = d.data();
-            const updates = {};
-            if (data.hasOwnProperty("targetType")) {
-              updates.questType = data.targetType || data.questType || "streak";
-              updates.targetType = deleteField(); // Delete old field in DB
-            }
-            if (data.questType === "streak" && data.period !== "persistent") {
-              updates.period = "persistent";
-            }
-            if (Object.keys(updates).length > 0) {
-              await updateDoc(doc(db, "questTemplates", d.id), updates);
-            }
-          });
-        }
         setTemplates(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
       } else {
         setTemplates(QUEST_TEMPLATES);
@@ -245,7 +225,6 @@ export function QuestProvider({ children }) {
   // EFFECT 3: REAL-TIME ACTIVE QUESTS LISTENER
   // ==========================================
   // Subscribes to the '/quests' collection where 'uid == currentUser.uid'.
-  // Automatically runs migration rules on fetched items.
   useEffect(() => {
     if (!currentUser || !timeSynced) {
       setQuests([]);
@@ -258,24 +237,6 @@ export function QuestProvider({ children }) {
       where("uid", "==", currentUser.uid)
     );
     const unsub = onSnapshot(q, (snap) => {
-      // Run database migration on active user quests if legacy field formats are found
-      if (!questMigrationDone.current) {
-        questMigrationDone.current = true;
-        snap.docs.forEach(async (d) => {
-          const data = d.data();
-          const updates = {};
-          if (data.hasOwnProperty("targetType")) {
-            updates.questType = data.targetType || data.questType || "streak";
-            updates.targetType = deleteField();
-          }
-          if (data.questType === "streak" && data.period !== "persistent") {
-            updates.period = "persistent";
-          }
-          if (Object.keys(updates).length > 0) {
-            await updateDoc(doc(db, "quests", d.id), updates);
-          }
-        });
-      }
       const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       setQuests(data);
       setLoading(false);
