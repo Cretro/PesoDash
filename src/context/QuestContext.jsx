@@ -18,8 +18,9 @@ import { useExpenses } from "./ExpenseContext";
 // QuestContext: Manages active quests, user point awards, daily and weekly reset audit cycles.
 const QuestContext = createContext(null);
 
-// QUEST_TEMPLATES: Hardcoded definitions representing the core system quests.
-// If a user has no active quests in Firestore, the system seeds document instances using these templates.
+// QUEST_TEMPLATES: Fallback quest definitions used only when the admin has NOT yet configured
+// any templates in the '/questTemplates' Firestore collection, or if that fetch fails.
+// Under normal operation, new users are seeded from the admin-managed Firestore templates instead.
 const QUEST_TEMPLATES = [
   {
     questType: "streak",
