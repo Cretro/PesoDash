@@ -652,14 +652,11 @@ export function QuestProvider({ children }) {
     }
   }
 
-  // Admin sandbox utility
-  async function updateQuestProgress(questId, progress, completed = false) {
-    await updateDoc(doc(db, "quests", questId), { progress, completed });
-  }
+
 
   return (
     <QuestContext.Provider
-      value={{ quests, templates, loading, initializing, QUEST_TEMPLATES, initializeQuests, updateQuestProgress }}
+      value={{ quests, templates, loading, initializing, QUEST_TEMPLATES, initializeQuests }}
     >
       {children}
     </QuestContext.Provider>

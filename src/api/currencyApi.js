@@ -1,7 +1,6 @@
 /**
  * Frankfurter Currency Exchange API
  * https://api.frankfurter.dev/v1/latest?from=PHP&to=USD,EUR,JPY,KRW,SGD
- * No API key required. Backed by the European Central Bank.
  */
 
 export const CURRENCIES = [
