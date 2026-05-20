@@ -54,13 +54,12 @@ export default function Login() {
   }
 
   return (
-    <div className="d-flex align-items-end align-items-lg-center justify-content-center" style={{ minHeight: "100vh", background: "linear-gradient(160deg,#0f172a,#1a103d)", padding: "1rem" }}>
+    <div className="d-flex align-items-end align-items-lg-center justify-content-center" style={{ minHeight: "100vh", background: "var(--pd-bg)", padding: "1rem" }}>
       <motion.div className="w-100" style={{ maxWidth: 480 }} initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-        <div className="card rounded-top-4 rounded-bottom-0 border-0 responsive-modal-card">
+        <div className="card rounded-4 glass-card responsive-modal-card">
           <div className="card-body px-4 pt-4 pb-5">
             <div className="text-center mb-3">
-              <div style={{ fontSize: "2.5rem" }}>💰</div>
-              <h1 className="fw-black fs-4 text-white mb-1">Welcome back</h1>
+              <h1 className="fw-bold fs-3 text-white mb-1 tactical-title">Welcome back</h1>
               <p className="text-secondary small">Sign in to continue your journey</p>
             </div>
 
@@ -84,14 +83,14 @@ export default function Login() {
                 <input id="login-password" type="password" name="password" value={form.password} onChange={handleChange}
                   placeholder="Your password" className="form-control form-control-lg" autoComplete="current-password" required />
               </div>
-              <button type="submit" className="btn gradient-btn w-100 fw-bold py-3 rounded-3 mt-1" disabled={loading} id="login-submit-btn" style={{ minHeight: 54 }}>
+              <button type="submit" className="btn btn-primary w-100 fw-bold py-3 rounded-3 mt-1" disabled={loading} id="login-submit-btn" style={{ minHeight: 54 }}>
                 {loading ? "Signing in…" : "Sign In"}
               </button>
             </form>
 
             <p className="text-center text-secondary small mt-3 mb-0">
               Don't have an account?{" "}
-              <Link to="/register" className="text-primary fw-semibold" id="login-to-register-link">Create one</Link>
+              <Link to="/register" className="fw-semibold" style={{ color: "var(--pd-primary)" }} id="login-to-register-link">Create one</Link>
             </p>
           </div>
         </div>

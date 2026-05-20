@@ -16,7 +16,7 @@ const MEDALS = ["🥇", "🥈", "🥉"];
 function RankRow({ user, rank, isMe }) {
   return (
     <li className={`list-group-item d-flex align-items-center gap-3 px-3 py-2 ${isMe ? "border-primary border-opacity-50" : ""}`}
-      style={isMe ? { background: "rgba(99,102,241,.1)" } : {}}
+      style={isMe ? { background: "rgba(149,193,89,.1)" } : {}}
       id={`leaderboard-row-${rank}`}
     >
       <span className="fw-bold" style={{ minWidth: 32, color: rank <= 3 ? undefined : "#64748b", fontSize: ".9rem" }}>
@@ -27,7 +27,7 @@ function RankRow({ user, rank, isMe }) {
         <p className="fw-semibold text-white mb-0 small">{user.displayName}{isMe ? " (You)" : ""}</p>
         <p className="text-secondary mb-0" style={{ fontSize: ".7rem" }}>🔥 {user.currentStreak || 0}-day streak</p>
       </div>
-      <span className="fw-bold" style={{ color: "#818cf8", fontSize: ".9rem" }}>{user.totalPoints || 0} pts</span>
+      <span className="fw-bold" style={{ color: "var(--pd-primary)", fontSize: ".9rem" }}>{user.totalPoints || 0} pts</span>
     </li>
   );
 }
@@ -49,7 +49,7 @@ function Podium({ users }) {
   const colors = ["#64748b", "#f59e0b", "#b45309"]; // Silver, Gold, Bronze border hex colors
 
   return (
-    <div className="card rounded-4 mb-3" style={{ background: "rgba(99,102,241,.06)", border: "1px solid rgba(99,102,241,.15)" }}>
+    <div className="card rounded-4 mb-3" style={{ background: "rgba(149,193,89,.06)", border: "1px solid rgba(149,193,89,.15)" }}>
       <div className="card-body">
         <div className="d-flex justify-content-center align-items-end gap-3 pb-1">
           {order.map((u, i) => (

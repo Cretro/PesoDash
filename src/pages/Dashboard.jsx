@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { FiBarChart2 } from "react-icons/fi";
@@ -36,6 +36,13 @@ export default function Dashboard() {
   const dailyBudget = userProfile?.dailyBudget || 300;
   const todayStr = getTodayString(); // Gets current local date string (YYYY-MM-DD)
 
+  // Live clock for the header
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   // useMemo: Filters the full expense list to isolate items logged today.
   // Optimizes performance so this filtering loop only re-runs if expenses update.
   const todayExpenses = useMemo(() => expenses.filter((e) => e.date === todayStr), [expenses, todayStr]);
@@ -66,30 +73,32 @@ export default function Dashboard() {
           <div className="d-flex align-items-center gap-3">
             <Avatar name={currentUser?.displayName || "User"} size={48} />
             <div>
-              <p className="text-secondary small mb-0">Good day 👋</p>
-              <h2 className="fw-black text-white mb-0">Hey, {name}!</h2>
+              <p className="fw-bold mb-1" style={{ color: "#95C159", fontSize: "12px" }}>
+                {now.toDateString()} at {now.toLocaleTimeString()}
+              </p>
+              <h2 className="text-white fw-bold mb-0 tactical-title">Welcome, {name}!</h2>
             </div>
           </div>
-          <span className="badge rounded-pill" style={{ background: "rgba(99,102,241,.15)", border: "1px solid rgba(99,102,241,.3)", color: "#818cf8", fontSize: ".8rem", padding: ".4rem .875rem" }}>
+          <span className="badge rounded-pill" style={{ background: "rgba(234,179,8,.15)", border: "1px solid rgba(234,179,8,.3)", color: "var(--pd-reward)", fontSize: ".8rem", padding: ".4rem .875rem" }}>
             ⭐ {userProfile?.totalPoints || 0} pts
           </span>
         </div>
 
         <div className="row g-4">
           <div className="col-12 col-lg-7">
-            
+
             {/* Circular Progress Ring & Spending stats */}
             <div className={`card rounded-4 mb-3 ${isOver ? "border-danger" : ""}`}
-              style={{ background: isOver ? "rgba(239,68,68,.1)" : "rgba(99,102,241,.08)", borderColor: isOver ? "rgba(239,68,68,.3)" : "rgba(99,102,241,.25)" }}>
+              style={{ background: isOver ? "rgba(217,83,79,.1)" : "var(--pd-surface)", borderColor: isOver ? "var(--pd-alert)" : "var(--pd-border)" }}>
               <div className="card-body d-flex align-items-center gap-4">
-                
+
                 {/* SVG Progress Circle rendering */}
                 <div className="budget-ring-wrap" style={{ flexShrink: 0 }}>
                   <svg width="100" height="100" viewBox="0 0 100 100">
                     {/* Background grey track */}
-                    <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,.08)" strokeWidth="10" />
+                    <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,.05)" strokeWidth="10" />
                     {/* Active foreground indicator bar */}
-                    <circle cx="50" cy="50" r="40" fill="none" stroke={isOver ? "#ef4444" : "#6366f1"}
+                    <circle cx="50" cy="50" r="40" fill="none" stroke={isOver ? "var(--pd-alert)" : "var(--pd-primary)"}
                       strokeWidth="10" strokeDasharray={circ} strokeDashoffset={dashOff}
                       strokeLinecap="round" transform="rotate(-90 50 50)" // Rotates -90deg so progress starts at 12 o'clock
                       style={{ transition: "stroke-dashoffset .6s ease" }} />
@@ -108,7 +117,7 @@ export default function Dashboard() {
                   </div>
                   <div className="col-6">
                     <p className="text-uppercase small fw-semibold text-secondary mb-0" style={{ fontSize: ".65rem" }}>Remaining</p>
-                    <p className={`fw-bold mb-0 ${isOver ? "text-danger" : "text-success"}`}>
+                    <p className={`fw-bold mb-0`} style={{ color: isOver ? "var(--pd-alert)" : "var(--pd-primary)" }}>
                       {isOver ? "Over!" : formatCurrency(remaining)}
                     </p>
                   </div>
@@ -122,19 +131,19 @@ export default function Dashboard() {
 
             {/* Streak Counter Alert */}
             <div className="d-flex align-items-center gap-2 px-3 py-2.5 rounded-3 mb-3"
-              style={{ background: "rgba(245,158,11,.08)", border: "1px solid rgba(245,158,11,.2)" }}>
+              style={{ background: "rgba(234,179,8,.08)", border: "1px solid rgba(234,179,8,.2)" }}>
               <span>🔥</span>
-              <span className="fw-semibold" style={{ color: "#fbbf24", fontSize: ".9rem" }}>
+              <span className="fw-semibold" style={{ color: "var(--pd-reward)", fontSize: ".9rem" }}>
                 {userProfile?.currentStreak || 0}-day budget streak
               </span>
             </div>
 
             {/* Analytics navigation banner link */}
             <Link to="/analytics" className="text-decoration-none mb-3 d-block">
-              <div className="card rounded-3 glass-card" style={{ background: "rgba(99,102,241,.12)", border: "1px solid rgba(99,102,241,.2)" }}>
+              <div className="card rounded-3 glass-card" style={{ background: "rgba(149,193,89,.1)", border: "1px solid rgba(149,193,89,.25)" }}>
                 <div className="card-body d-flex align-items-center justify-content-between py-2.5">
                   <div className="d-flex align-items-center gap-2">
-                    <FiBarChart2 style={{ color: "#818cf8" }} />
+                    <FiBarChart2 style={{ color: "var(--pd-primary)" }} />
                     <span className="fw-bold text-white small">View Spending Analytics</span>
                   </div>
                   <span className="text-secondary small">→</span>
@@ -156,13 +165,13 @@ export default function Dashboard() {
                       <p className="text-secondary mb-2" style={{ fontSize: ".75rem" }}>{activeQuest.description}</p>
                       <div className="progress mb-1" style={{ height: 5 }}>
                         <div className="progress-bar"
-                          style={{ width: `${Math.min((activeQuest.progress / activeQuest.target) * 100, 100)}%`, background: "linear-gradient(90deg,#6366f1,#8b5cf6)" }} />
+                          style={{ width: `${Math.min((activeQuest.progress / activeQuest.target) * 100, 100)}%`, background: "var(--pd-primary)" }} />
                       </div>
                       <p className="text-secondary mb-0" style={{ fontSize: ".7rem", textAlign: "right" }}>
                         {activeQuest.progress}/{activeQuest.target}
                       </p>
                     </div>
-                    <span className="badge" style={{ background: "rgba(99,102,241,.15)", color: "#818cf8", border: "1px solid rgba(99,102,241,.3)", fontSize: ".75rem" }}>
+                    <span className="badge" style={{ background: "rgba(234,179,8,.15)", color: "var(--pd-reward)", border: "1px solid rgba(234,179,8,.3)", fontSize: ".75rem" }}>
                       +{activeQuest.pointsReward}pt
                     </span>
                   </div>

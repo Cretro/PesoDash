@@ -300,14 +300,14 @@ export default function AdminDashboard() {
         {activeTab === "users" && (
           <div className="panel-container">
             {/* Search Input */}
-            <div className="d-flex align-items-center gap-2 mb-3 bg-white bg-opacity-5 border border-white border-opacity-10 rounded-3 px-3 py-2">
-              <FiSearch className="text-secondary" />
+            <div className="d-flex align-items-center gap-2 mb-3 rounded-3 px-3 py-2" style={{ background: "rgba(0,0,0,0.2)", border: "1px solid var(--pd-border)" }}>
+              <FiSearch style={{ color: "var(--pd-muted)" }} />
               <input
                 type="text"
                 placeholder="Search users by name or email..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="form-control border-0 p-0 text-white bg-transparent"
+                className="w-100 border-0 p-0 text-white bg-transparent"
                 style={{ outline: "none", boxShadow: "none" }}
               />
             </div>
@@ -343,9 +343,9 @@ export default function AdminDashboard() {
                             </div>
                           </td>
                           <td className="py-2.5 text-secondary small">{user.email}</td>
-                          <td className="py-2.5 text-white small text-center fw-bold">{user.totalPoints || 0}</td>
-                          <td className="py-2.5 text-warning small text-center">🔥 {user.currentStreak || 0}</td>
-                          <td className="py-2.5 text-white small text-center">₱{user.dailyBudget || 300}</td>
+                          <td className="py-2.5 text-white small text-center fw-bold" style={{ fontWeight: 800 }}>{user.totalPoints || 0}</td>
+                          <td className="py-2.5 small text-center fw-bold" style={{ color: "var(--pd-reward)", fontWeight: 800 }}>🔥 {user.currentStreak || 0}</td>
+                          <td className="py-2.5 text-white small text-center fw-bold" style={{ fontWeight: 800 }}>₱{user.dailyBudget || 300}</td>
                           <td className="py-2.5 text-center">
                             {user.role === "admin" ? (
                               <span className="badge bg-indigo rounded-pill small" style={{ fontSize: ".7rem" }}>Admin</span>
@@ -397,15 +397,15 @@ export default function AdminDashboard() {
                         <div className="d-flex flex-wrap gap-2 text-center pt-2 border-top border-white border-opacity-5">
                           <div className="flex-fill p-1 bg-white bg-opacity-5 rounded-2">
                             <p className="text-secondary mb-0" style={{ fontSize: ".6rem", textTransform: "uppercase" }}>Points</p>
-                            <p className="fw-bold text-white mb-0 small">{user.totalPoints || 0}</p>
+                            <p className="fw-bold text-white mb-0 small" style={{ fontWeight: 800 }}>{user.totalPoints || 0}</p>
                           </div>
                           <div className="flex-fill p-1 bg-white bg-opacity-5 rounded-2">
                             <p className="text-secondary mb-0" style={{ fontSize: ".6rem", textTransform: "uppercase" }}>Streak</p>
-                            <p className="fw-semibold text-warning mb-0 small">🔥 {user.currentStreak || 0}</p>
+                            <p className="fw-bold mb-0 small" style={{ color: "var(--pd-reward)", fontWeight: 800 }}>🔥 {user.currentStreak || 0}</p>
                           </div>
                           <div className="flex-fill p-1 bg-white bg-opacity-5 rounded-2">
                             <p className="text-secondary mb-0" style={{ fontSize: ".6rem", textTransform: "uppercase" }}>Budget</p>
-                            <p className="fw-semibold text-white mb-0 small">₱{user.dailyBudget || 300}</p>
+                            <p className="fw-bold text-white mb-0 small" style={{ fontWeight: 800 }}>₱{user.dailyBudget || 300}</p>
                           </div>
                           <div className="flex-fill p-1 bg-white bg-opacity-5 rounded-2 d-flex align-items-center justify-content-center gap-1 flex-column">
                             {user.role === "admin" && <span className="badge bg-indigo rounded-pill" style={{ fontSize: ".6rem" }}>Admin</span>}
@@ -532,10 +532,10 @@ export default function AdminDashboard() {
                 {/* Statistics Scorecards */}
                 <div className="row g-3">
                   {[
-                    { label: "Total Users", value: stats.totalUsers, color: "#818cf8" },
-                    { label: "Total Points Awarded", value: stats.totalPoints, color: "#10b981" },
-                    { label: "Total Transactions Logged", value: stats.totalTransactions, color: "#ec4899" },
-                    { label: "Total Money Tracked", value: formatCurrency(stats.totalMoneySpent), color: "#f59e0b" },
+                    { label: "Total Users", value: stats.totalUsers, color: "var(--pd-primary)" },
+                    { label: "Total Points Awarded", value: stats.totalPoints, color: "var(--pd-reward)" },
+                    { label: "Total Transactions Logged", value: stats.totalTransactions, color: "var(--pd-muted)" },
+                    { label: "Total Money Tracked", value: formatCurrency(stats.totalMoneySpent), color: "var(--pd-alert)" },
                   ].map((stat, idx) => (
                     <div className="col-12 col-md-6 col-lg-3" key={idx}>
                       <div className="card rounded-3 glass-card h-100" style={{ borderLeft: `3px solid ${stat.color}` }}>
@@ -543,7 +543,7 @@ export default function AdminDashboard() {
                           <p className="text-secondary small text-uppercase fw-bold mb-1" style={{ fontSize: ".65rem", letterSpacing: ".06em" }}>
                             {stat.label}
                           </p>
-                          <p className="fw-black text-white mb-0 fs-4">{stat.value}</p>
+                          <p className="fw-bold text-white mb-0 fs-4" style={{ fontWeight: 800 }}>{stat.value}</p>
                         </div>
                       </div>
                     </div>
@@ -562,7 +562,7 @@ export default function AdminDashboard() {
                           {CATEGORIES.map((cat) => {
                             const catAmt = stats.categoryTotals[cat] || 0;
                             const pct = stats.totalMoneySpent ? Math.round((catAmt / stats.totalMoneySpent) * 100) : 0;
-                            const colorMap = { Food: "#818cf8", Commute: "#ec4899", "School Expenses": "#f59e0b", Others: "#10b981" };
+                            const colorMap = { Food: "var(--pd-primary)", Commute: "var(--pd-reward)", "School Expenses": "var(--pd-alert)", Others: "var(--pd-muted)" };
                             return (
                               <div key={cat}>
                                 <div className="d-flex justify-content-between text-white mb-1 small">
@@ -597,23 +597,23 @@ export default function AdminDashboard() {
                         <div className="d-flex flex-column gap-3.5">
                           <div className="d-flex align-items-center justify-content-between">
                             <span className="text-secondary small">Average Daily Budget</span>
-                            <span className="fw-bold text-white">₱{stats.averageBudget}</span>
+                            <span className="fw-bold text-white" style={{ fontWeight: 800 }}>₱{stats.averageBudget}</span>
                           </div>
                           <div className="d-flex align-items-center justify-content-between">
                             <span className="text-secondary small">Average Point Pool</span>
-                            <span className="fw-bold text-success">
+                            <span className="fw-bold" style={{ color: "var(--pd-reward)", fontWeight: 800 }}>
                               {stats.totalUsers ? Math.round(stats.totalPoints / stats.totalUsers) : 0} pts
                             </span>
                           </div>
                           <div className="d-flex align-items-center justify-content-between">
                             <span className="text-secondary small">Transactions per User</span>
-                            <span className="fw-bold text-info">
+                            <span className="fw-bold text-white" style={{ fontWeight: 800 }}>
                               {stats.totalUsers ? (stats.totalTransactions / stats.totalUsers).toFixed(1) : "0.0"}
                             </span>
                           </div>
                           <div className="d-flex align-items-center justify-content-between">
                             <span className="text-secondary small">Average Spent / User</span>
-                            <span className="fw-bold text-warning">
+                            <span className="fw-bold" style={{ color: "var(--pd-alert)", fontWeight: 800 }}>
                               {formatCurrency(stats.totalUsers ? stats.totalMoneySpent / stats.totalUsers : 0)}
                             </span>
                           </div>

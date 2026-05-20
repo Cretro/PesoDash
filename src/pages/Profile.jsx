@@ -68,7 +68,7 @@ export default function Profile() {
 
       {/* Profile Header Block */}
       <div className="text-center mb-4">
-        <div className="d-inline-block mb-3" style={{ borderRadius: "50%", boxShadow: "0 0 0 4px rgba(99,102,241,.3)" }}>
+        <div className="d-inline-block mb-3" style={{ borderRadius: "50%", boxShadow: "0 0 0 4px rgba(149,193,89,.3)" }}>
           <Avatar name={currentUser?.displayName || "User"} size={80} />
         </div>
         <h2 className="fw-black text-white mb-0">{currentUser?.displayName}</h2>
@@ -85,7 +85,7 @@ export default function Profile() {
           <div className="col-4" key={s.label}>
             <div className="card rounded-3 glass-card h-100">
               <div className="card-body text-center p-2">
-                <p className="fw-black text-white mb-0 fs-5">{s.value}</p>
+                <p className="fw-bold text-white mb-0 fs-4" style={{ fontWeight: 800 }}>{s.value}</p>
                 <p className="text-secondary mb-0" style={{ fontSize: ".65rem", textTransform: "uppercase", letterSpacing: ".06em" }}>{s.label}</p>
               </div>
             </div>
@@ -102,7 +102,7 @@ export default function Profile() {
           <div className="d-flex gap-2">
             <input id="profile-budget" type="number" value={budget} onChange={(e) => setBudget(e.target.value)}
               className="form-control" min={1} inputMode="numeric" />
-            <button className="btn gradient-btn fw-bold px-4 rounded-3" onClick={saveBudget} disabled={saving} id="profile-save-budget-btn" style={{ minHeight: 44, whiteSpace: "nowrap" }}>
+            <button className="btn btn-primary fw-bold px-4 rounded-3" onClick={saveBudget} disabled={saving} id="profile-save-budget-btn" style={{ minHeight: 44, whiteSpace: "nowrap" }}>
               {saved ? "✅ Saved!" : saving ? "…" : "Save"}
             </button>
           </div>

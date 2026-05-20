@@ -1,52 +1,47 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap');
 
 /* ── Custom Properties ──────────────────────────────────────── */
 :root {
-  --pd-bg:        #0f172a;
-  --pd-surface:   #1e293b;
-  --pd-border:    rgba(255,255,255,0.08);
-  --pd-primary:   #6366f1;
-  --pd-primary-2: #8b5cf6;
-  --pd-muted:     #64748b;
+  --pd-bg:        #151712;
+  --pd-surface:   #22251B;
+  --pd-border:    #333829;
+  --pd-primary:   #95C159; /* Neon Moss */
+  --pd-primary-2: #95C159; 
+  --pd-muted:     #888C78;
+  --pd-text:      #E2E2D5;
+  --pd-reward:    #EAB308;
+  --pd-alert:     #D9534F;
   font-family: 'Inter', system-ui, sans-serif;
 }
 
 /* ── Bootstrap Dark Overrides ───────────────────────────────── */
-body                { background: var(--pd-bg) !important; overflow-x: hidden; }
-.card               { background: var(--pd-surface) !important; border-color: var(--pd-border) !important; }
-.list-group-item    { background: var(--pd-surface) !important; border-color: var(--pd-border) !important; color: #f8fafc; }
+body                { background: var(--pd-bg) !important; overflow-x: hidden; color: var(--pd-text); }
+.card               { background: var(--pd-surface) !important; border: 1px solid var(--pd-border) !important; box-shadow: 0 8px 24px rgba(0,0,0,0.5), 0 4px 8px rgba(0,0,0,0.3) !important; }
+.list-group-item    { background: var(--pd-surface) !important; border-color: var(--pd-border) !important; color: var(--pd-text); }
 .form-control,
-.form-select        { background: rgba(255,255,255,0.05) !important; border-color: var(--pd-border) !important; color: #f8fafc !important; }
+.form-select        { background: rgba(255,255,255,0.05) !important; border: 1px solid var(--pd-border) !important; color: var(--pd-text) !important; }
 .form-control::placeholder { color: var(--pd-muted) !important; }
 .form-control:focus,
-.form-select:focus  { border-color: var(--pd-primary) !important; box-shadow: 0 0 0 .2rem rgba(99,102,241,.25) !important; }
-.btn-primary        { background: linear-gradient(135deg, var(--pd-primary), var(--pd-primary-2)) !important; border: none !important; }
+.form-select:focus  { border-color: var(--pd-primary) !important; box-shadow: 0 0 0 .2rem rgba(149,193,89,.25) !important; }
+.btn-primary        { background: var(--pd-primary) !important; border: none !important; color: #ffffff !important; font-weight: 600; }
 .nav-pills .nav-link        { color: var(--pd-muted); }
-.nav-pills .nav-link.active { background: rgba(99,102,241,.2) !important; color: #818cf8 !important; }
-.modal-content      { background: var(--pd-surface) !important; border-color: var(--pd-border) !important; }
+.nav-pills .nav-link.active { background: rgba(149,193,89,.2) !important; color: var(--pd-primary) !important; border: 1px solid rgba(149,193,89,.4); font-weight: bold; }
+.modal-content      { background: var(--pd-surface) !important; border: 1px solid var(--pd-border) !important; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6) !important; }
 .offcanvas          { background: var(--pd-surface) !important; }
 .progress           { background: rgba(255,255,255,.08) !important; }
-.badge.bg-primary   { background: linear-gradient(135deg,var(--pd-primary),var(--pd-primary-2)) !important; }
+.badge.bg-primary   { background: var(--pd-primary) !important; color: #151712 !important; }
 input[type=date]    { color-scheme: dark; }
 
 /* ── Utility Classes ─────────────────────────────────────────── */
-.gradient-text {
-  background: linear-gradient(135deg, var(--pd-primary), #ec4899);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.gradient-btn {
-  background: linear-gradient(135deg, var(--pd-primary), var(--pd-primary-2)) !important;
-  border: none !important;
-  color: white !important;
+/* Removed gradient-text and gradient-btn to match the tactical, non-AI look */
+.tactical-title {
+  font-family: 'Playfair Display', Georgia, serif;
 }
 
 .glass-card {
-  background: rgba(30,41,59,0.6) !important;
-  backdrop-filter: blur(12px);
+  background: var(--pd-surface) !important;
   border: 1px solid var(--pd-border) !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5), 0 4px 8px rgba(0,0,0,0.3) !important;
 }
 
 /* ── Budget Ring (SVG) ───────────────────────────────────────── */
@@ -56,8 +51,8 @@ input[type=date]    { color-scheme: dark; }
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
 }
-.budget-ring-pct    { font-size: 1rem; font-weight: 800; color: #f8fafc; line-height: 1; }
-.budget-ring-sub    { font-size: 0.6rem; color: var(--pd-muted); }
+.budget-ring-pct    { font-size: 1.1rem; font-weight: 800; color: var(--pd-text); line-height: 1; }
+.budget-ring-sub    { font-size: 0.65rem; color: var(--pd-muted); font-weight: 500; }
 
 /* ── Number input — hide spinners ───────────────────────────── */
 input[type=number]::-webkit-inner-spin-button,
