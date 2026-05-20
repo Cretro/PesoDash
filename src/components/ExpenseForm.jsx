@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useExpenses } from "../../context/ExpenseContext";
-import { getTodayString } from "../../utils/formatters";
+import { useExpenses } from "../context/ExpenseContext";
+import { getTodayString } from "../utils/formatters";
 
 const CATEGORIES = ["Food", "Commute", "School Expenses", "Others"];
 

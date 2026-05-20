@@ -1,14 +1,17 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../context/AuthContext";
 
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [form, setForm]     = useState({ email: "", password: "" });
   const [error, setError]   = useState("");
   const [loading, setLoading] = useState(false);
+
+  const disabledError = location.state?.disabledError;
 
   function handleChange(e) { setForm({ ...form, [e.target.name]: e.target.value }); setError(""); }
 
@@ -25,15 +28,21 @@ export default function Login() {
   }
 
   return (
-    <div className="d-flex align-items-end justify-content-center" style={{ minHeight: "100vh", background: "linear-gradient(160deg,#0f172a,#1a103d)", padding: "1rem" }}>
+    <div className="d-flex align-items-end align-items-lg-center justify-content-center" style={{ minHeight: "100vh", background: "linear-gradient(160deg,#0f172a,#1a103d)", padding: "1rem" }}>
       <motion.div className="w-100" style={{ maxWidth: 480 }} initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-        <div className="card rounded-top-4 rounded-bottom-0 border-0">
+        <div className="card rounded-top-4 rounded-bottom-0 border-0 responsive-modal-card">
           <div className="card-body px-4 pt-4 pb-5">
             <div className="text-center mb-3">
               <div style={{ fontSize: "2.5rem" }}>💰</div>
               <h1 className="fw-black fs-4 text-white mb-1">Welcome back</h1>
               <p className="text-secondary small">Sign in to continue your journey</p>
             </div>
+
+            {disabledError && (
+              <div className="alert alert-warning py-2.5 small mb-3 text-center border-warning border-opacity-25" style={{ background: "rgba(245,158,11,.15)", color: "#fbbf24" }}>
+                🔒 This account has been disabled/archived by an administrator.
+              </div>
+            )}
 
             {error && <div className="alert alert-danger py-2 small">{error}</div>}
 

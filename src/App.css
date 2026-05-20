@@ -63,3 +63,95 @@
 }
 .phone-mock-bar { height: 6px; background: rgba(255,255,255,.1); border-radius: 3px; overflow: hidden; }
 .phone-mock-bar-fill { height: 100%; background: linear-gradient(90deg,#6366f1,#ec4899); border-radius: 3px; }
+
+/* ── Responsive Styling (Desktop / ≥992px) ────────────────────── */
+@media (min-width: 992px) {
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 260px;
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(16px);
+    border-right: 1px solid var(--pd-border);
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem 1rem;
+    z-index: 1010;
+  }
+  
+  .sidebar__brand {
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .sidebar__item {
+    color: var(--pd-muted);
+    transition: all 0.2s ease-in-out;
+    border: 1px solid transparent;
+  }
+
+  .sidebar__item:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .sidebar__item.active {
+    color: #ffffff;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.15));
+    border: 1px solid rgba(99, 102, 241, 0.25);
+  }
+
+  .sidebar__badge {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ef4444;
+  }
+  
+  /* Restructure main content area */
+  .app-content-area {
+    margin-left: 260px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Reset top-bar */
+  .top-bar {
+    left: 260px;
+    transform: none;
+    width: calc(100% - 260px);
+    max-width: none;
+    border-bottom: 1px solid var(--pd-border);
+    padding: 1rem 2rem;
+  }
+  
+  /* Reset page padding and limits */
+  .app-main {
+    padding-top: 70px;
+    padding-bottom: 2rem;
+  }
+
+  .page-content {
+    max-width: 1000px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 2rem;
+  }
+
+  /* Reset FAB position on desktop */
+  .fab {
+    bottom: 2.5rem;
+    right: 2.5rem;
+  }
+
+  /* Modal corner rounding on desktop */
+  .responsive-modal-card {
+    border-radius: 1rem !important;
+  }
+}

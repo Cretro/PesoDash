@@ -32,6 +32,8 @@ export function ExpenseProvider({ children }) {
       const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       setExpenses(data);
       setLoading(false);
+    }, (err) => {
+      console.error("ExpenseContext onSnapshot failed:", err);
     });
     return unsub;
   }, [currentUser]);

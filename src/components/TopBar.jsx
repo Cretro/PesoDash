@@ -8,6 +8,7 @@ const PAGE_TITLES = {
   "/analytics":   "Analytics",
   "/profile":     "Profile",
   "/developers":  "The Team",
+  "/admin":       "Admin Settings",
 };
 
 export default function TopBar() {

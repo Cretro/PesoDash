@@ -3,21 +3,24 @@ import { AuthProvider }   from "./context/AuthContext";
 import { ExpenseProvider } from "./context/ExpenseContext";
 import { QuestProvider }  from "./context/QuestContext";
 import { FriendProvider } from "./context/FriendContext";
-import ProtectedRoute from "./components/ProtectedRoute/ProtectedRoute";
-import TopBar    from "./components/TopBar/TopBar";
-import BottomNav from "./components/BottomNav/BottomNav";
-import FAB       from "./components/FAB/FAB";
+import ProtectedRoute from "./components/ProtectedRoute";
+import AdminRoute from "./components/AdminRoute";
+import TopBar    from "./components/TopBar";
+import BottomNav from "./components/BottomNav";
+import FAB       from "./components/FAB";
+import Sidebar   from "./components/Sidebar";
 
-import Landing    from "./pages/Landing/Landing";
-import Login      from "./pages/Auth/Login";
-import Register   from "./pages/Auth/Register";
-import Dashboard  from "./pages/Dashboard/Dashboard";
-import Expenses   from "./pages/Expenses/Expenses";
-import Quests     from "./pages/Quests/Quests";
-import Leaderboard from "./pages/Leaderboard/Leaderboard";
-import Analytics  from "./pages/Analytics/Analytics";
-import Profile    from "./pages/Profile/Profile";
-import Developers from "./pages/Developers/Developers";
+import Landing    from "./pages/Landing";
+import Login      from "./pages/Login";
+import Register   from "./pages/Register";
+import Dashboard  from "./pages/Dashboard";
+import Expenses   from "./pages/Expenses";
+import Quests     from "./pages/Quests";
+import Leaderboard from "./pages/Leaderboard";
+import Analytics  from "./pages/Analytics";
+import Profile    from "./pages/Profile";
+import Developers from "./pages/Developers";
+import AdminDashboard from "./pages/AdminDashboard";
 
 import "./App.css";
 
@@ -34,9 +37,12 @@ const PROTECTED = [
 function AppLayout({ children }) {
   return (
     <>
-      <TopBar />
-      <main className="app-main">{children}</main>
-      <FAB />
+      <Sidebar />
+      <div className="app-content-area">
+        <TopBar />
+        <main className="app-main">{children}</main>
+        <FAB />
+      </div>
       <BottomNav />
     </>
   );
@@ -44,7 +50,7 @@ function AppLayout({ children }) {
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       <AuthProvider>
         <ExpenseProvider>
           <QuestProvider>
@@ -61,6 +67,13 @@ export default function App() {
                       </ProtectedRoute>
                     } />
                   ))}
+                   <Route path="/admin" element={
+                    <ProtectedRoute>
+                      <AdminRoute>
+                        <AppLayout><AdminDashboard /></AppLayout>
+                      </AdminRoute>
+                    </ProtectedRoute>
+                  } />
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
               </div>

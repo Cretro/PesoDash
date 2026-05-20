@@ -1,16 +1,35 @@
-# React + Vite
+# PesoDash
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A personal finance dashboard web application built with React, Vite, and Firebase.
 
-Currently, two official plugins are available:
+## Getting Started
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Follow these steps to run the application locally:
 
-## React Compiler
+### 1. Prerequisites
+Ensure you have [Node.js](https://nodejs.org/) installed (v18 or higher recommended).
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 2. Clone the Repository
+```bash
+git clone <repository-url>
+cd PesoDash
+```
 
-## Expanding the ESLint configuration
+### 3. Install Dependencies
+```bash
+npm install
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### 4. Set Up Environment Variables
+Because database keys are not tracked in version control, you need to create an environment file:
+1. Duplicate `.env.example` in the root directory and rename it to `.env`.
+   - On macOS/Linux: `cp .env.example .env`
+   - On Windows (PowerShell): `cp .env.example .env`
+2. Open the newly created `.env` file and replace the placeholder values with your actual Firebase project configuration.
+
+### 5. Run the App
+Start the local development server:
+```bash
+npm run dev
+```
+Open [http://localhost:5173](http://localhost:5173) in your browser to view the application.
