@@ -2,16 +2,30 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuests } from "../context/QuestContext";
 
+/**
+ * Quests Page Component
+ * 
+ * Purpose: Renders the active challenges and completed quest history log for the user.
+ * Key features:
+ *  1. Tab switching between Active and Completed quests.
+ *  2. Real-time countdown timer tracking the exact remaining hours/minutes until midnight.
+ *  3. Context-driven conditional rendering:
+ *     - Daily binary quests (e.g. Budget Streak or Zero Splurge) render as status boxes showing "On Track" or "Failed".
+ *     - Weekly or accumulative quests render visual progress bars with limit breach checks.
+ *  4. Log list showing exactly when the quest was completed previously.
+ */
 export default function Quests() {
   const { quests, loading } = useQuests();
   const [tab, setTab] = useState("active");
   const [timeToMidnight, setTimeToMidnight] = useState("");
 
+  // Countdown timer effect: Computes difference between current system time and next midnight.
+  // Re-evaluates every minute to update the visual countdown.
   useEffect(() => {
     function updateCountdown() {
       const now = new Date();
       const midnight = new Date();
-      midnight.setHours(24, 0, 0, 0); // Next midnight
+      midnight.setHours(24, 0, 0, 0); // Shifts timezone/hour anchor to exactly 12:00 AM next day
       const diffMs = midnight - now;
       const hours = Math.max(0, Math.floor(diffMs / 3600000));
       const minutes = Math.max(0, Math.floor((diffMs % 3600000) / 60000));
@@ -22,19 +36,22 @@ export default function Quests() {
     return () => clearInterval(interval);
   }, []);
 
-  // Active = not completed this week
+  // Filter 1: Active Quests (Quests where the "completed" boolean is false this cycle)
   const active = quests.filter((q) => !q.completed);
-  // Completed tab = quests that have EVER been completed (timesCompleted > 0 OR completed this week)
+  
+  // Filter 2: Completed Quests (Either completed this week/cycle OR timesCompleted > 0 in history)
   const completed = quests.filter((q) => q.completed || (q.timesCompleted > 0));
+  
   const list = tab === "active" ? active : completed;
 
+  // Render simple fallback spinner if context is still retrieving documents from Firestore
   if (loading)
     return <div className="page-content text-secondary text-center pt-5">Loading quests…</div>;
 
   return (
     <div className="page-content" style={{ maxWidth: 720 }}>
 
-      {/* Tab switcher */}
+      {/* Tab Selector: Uses Bootstrap nav-pills styling */}
       <ul className="nav nav-pills nav-fill mb-3 p-1 rounded-3" style={{ background: "rgba(255,255,255,.04)" }}>
         {[["active", `Active (${active.length})`], ["completed", `Completed (${completed.length})`]].map(([key, label]) => (
           <li className="nav-item" key={key}>
@@ -46,11 +63,15 @@ export default function Quests() {
         ))}
       </ul>
 
+      {/* Quest Cards Container */}
       <div className="d-flex flex-column gap-3">
         <AnimatePresence mode="wait">
           {list.map((quest, i) => {
             const isCompletedThisWeek = quest.completed;
             const completions = [...(quest.completionHistory || [])];
+            
+            // UI helper: If completed in this current cycle, append a mock completion log 
+            // entry to the list so it visually appears immediately without waiting for database refresh.
             if (quest.completed) {
               const currentResetRef = quest.period === "daily"
                 ? quest.lastResetDate || new Date().toISOString().split("T")[0]
@@ -65,12 +86,9 @@ export default function Quests() {
                 });
               }
             }
-            const lastEntry = completions.at(-1);
-            const lastCompletedDate = lastEntry?.completedAt
-              ? new Date(lastEntry.completedAt).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })
-              : null;
             
             const qType = quest.targetType || quest.questType || "streak";
+            // Check if the quest is a category budget limit and the user has overspent.
             const isFailedSpendLimit = (qType === "category" || qType === "total_spend_limit") && quest.progress > quest.target;
 
             return (
@@ -79,7 +97,7 @@ export default function Quests() {
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: isCompletedThisWeek ? 0.65 : 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
-                transition={{ delay: i * 0.05 }}
+                transition={{ delay: i * 0.05 }} // Staggers card loading entries sequentially
               >
                 <div className="card-body">
                   <div className="d-flex align-items-start gap-3 mb-2">
@@ -89,7 +107,7 @@ export default function Quests() {
                       <p className="text-secondary mb-0" style={{ fontSize: ".8rem" }}>{quest.description}</p>
                     </div>
 
-                    {/* Badge — show completion status */}
+                    {/* Status Badges */}
                     <div className="d-flex flex-column align-items-end gap-1">
                       {isCompletedThisWeek ? (
                         <span className="badge bg-success rounded-pill">✅ Done</span>
@@ -102,7 +120,7 @@ export default function Quests() {
                           +{quest.pointsReward}pt
                         </span>
                       )}
-                      {/* Times completed badge */}
+                      {/* Times Completed Count Counter */}
                       {(quest.timesCompleted > 0) && (
                         <span className="badge rounded-pill" style={{ background: "rgba(245,158,11,.15)", color: "#f59e0b", border: "1px solid rgba(245,158,11,.3)", fontSize: ".72rem" }}>
                           🏆 {quest.timesCompleted}x
@@ -111,14 +129,14 @@ export default function Quests() {
                     </div>
                   </div>
 
-                  {/* Progress / Status display — only for active quests */}
+                  {/* ACTIVE TAB: Render Current Progress Controls */}
                   {tab === "active" && (
                     <div className="mt-2">
                       {quest.period === "daily" ? (
-                        // Daily Quest Layout
+                        // --- BRANCH A: DAILY QUEST TRACKER ---
                         <>
                           {(qType === "streak" || qType === "zero_splurge_days" || qType === "zero_splurge") ? (
-                            // Binary Daily Quests (On Track vs Failed)
+                            // Binary/Status Daily Challenges (Must hold state till midnight)
                             quest.progress === 1 ? (
                               <div className="d-flex align-items-center justify-content-between p-2 rounded-3" 
                                 style={{ background: "rgba(16, 185, 129, 0.06)", border: "1px solid rgba(16, 185, 129, 0.15)", color: "#34d399" }}>
@@ -141,26 +159,25 @@ export default function Quests() {
                               </div>
                             )
                           ) : (
-                            // Accumulative Daily Quests (Total Spend Limit / Category / Savings Goal)
+                            // Accumulative Daily Challenges (Savings targets, Category budgets)
                             (() => {
                               const isOverLimit = (qType === "category" || qType === "total_spend_limit") && quest.progress > quest.target;
                               const isGoalMet = qType === "savings_goal" && quest.progress >= quest.target;
-                              const isFailing = isOverLimit;
                               const progressPercent = Math.min((quest.progress / quest.target) * 100, 100);
                               
                               return (
                                 <>
                                   <div className="progress mb-1" style={{ height: 6 }}>
-                                    <div className={`progress-bar ${isFailing ? "bg-danger" : ""}`} role="progressbar"
+                                    <div className={`progress-bar ${isOverLimit ? "bg-danger" : ""}`} role="progressbar"
                                       style={{ 
                                         width: `${progressPercent}%`, 
-                                        background: isFailing ? undefined : "linear-gradient(90deg,#6366f1,#8b5cf6)" 
+                                        background: isOverLimit ? undefined : "linear-gradient(90deg,#6366f1,#8b5cf6)" 
                                       }}
                                       aria-valuenow={quest.progress} aria-valuemin={0} aria-valuemax={quest.target} />
                                   </div>
                                   <div className="d-flex justify-content-between align-items-center mt-1">
-                                    <span className={`small fw-semibold ${isFailing ? "text-danger" : "text-success"}`} style={{ fontSize: ".72rem" }}>
-                                      {isFailing 
+                                    <span className={`small fw-semibold ${isOverLimit ? "text-danger" : "text-success"}`} style={{ fontSize: ".72rem" }}>
+                                      {isOverLimit 
                                         ? "❌ Budget Limit Exceeded" 
                                         : isGoalMet 
                                           ? "⏳ On Track (Goal Achieved)" 
@@ -168,7 +185,7 @@ export default function Quests() {
                                       }
                                     </span>
                                     <span className="text-secondary font-monospace" style={{ fontSize: ".72rem" }}>
-                                      ₱{quest.progress} / ₱{quest.target} • {isFailing ? "Resets at midnight" : timeToMidnight}
+                                      ₱{quest.progress} / ₱{quest.target} • {isOverLimit ? "Resets at midnight" : timeToMidnight}
                                     </span>
                                   </div>
                                 </>
@@ -177,7 +194,7 @@ export default function Quests() {
                           )}
                         </>
                       ) : (
-                        // Weekly Quest Layout
+                        // --- BRANCH B: WEEKLY QUEST TRACKER ---
                         <>
                           <div className="progress mb-1" style={{ height: 6 }}>
                             <div className={`progress-bar ${isFailedSpendLimit ? "bg-danger" : ""}`} role="progressbar"
@@ -202,7 +219,7 @@ export default function Quests() {
                     </div>
                   )}
 
-                  {/* Detailed completion history log */}
+                  {/* COMPLETED TAB: Render Historical Log of Completion Entries */}
                   {tab === "completed" && completions.length > 0 && (
                     <div className="mt-2 pt-2 border-top border-white border-opacity-5">
                       <p className="text-secondary small fw-bold mb-1.5" style={{ fontSize: "0.65rem", letterSpacing: "0.05em", textTransform: "uppercase" }}>
@@ -240,6 +257,7 @@ export default function Quests() {
           })}
         </AnimatePresence>
 
+        {/* Empty list fallbacks */}
         {list.length === 0 && (
           <div className="card rounded-3 glass-card">
             <div className="card-body text-center py-5">
