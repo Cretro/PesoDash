@@ -45,10 +45,15 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
-      setCurrentUser(user);
-      if (user) await fetchUserProfile(user.uid);
-      else setUserProfile(null);
-      setLoading(false);
+      try {
+        setCurrentUser(user);
+        if (user) await fetchUserProfile(user.uid);
+        else setUserProfile(null);
+      } catch (err) {
+        console.error("Auth initialization error:", err);
+      } finally {
+        setLoading(false);
+      }
     });
     return unsub;
   }, []);
