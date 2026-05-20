@@ -5,7 +5,7 @@
 .top-bar {
   position: fixed; top: 0; left: 50%; transform: translateX(-50%);
   width: 100%; max-width: 480px; z-index: 1000;
-  background: rgba(15,23,42,.95); backdrop-filter: blur(16px);
+  background: var(--pd-surface); backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--pd-border);
   display: flex; align-items: center; gap: .5rem;
   padding: .875rem 1.25rem;
@@ -16,7 +16,7 @@
 .bottom-nav {
   position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
   width: 100%; max-width: 480px; z-index: 1000;
-  background: rgba(15,23,42,.95); backdrop-filter: blur(16px);
+  background: var(--pd-surface); backdrop-filter: blur(16px);
   border-top: 1px solid var(--pd-border);
   display: flex; justify-content: space-around; align-items: center;
   padding: .5rem 0 calc(.5rem + env(safe-area-inset-bottom));
@@ -33,7 +33,7 @@
 .bottom-nav__label { font-size: .65rem; font-weight: 500; }
 .bottom-nav__badge {
   position: absolute; top: 4px; right: 8px;
-  width: 8px; height: 8px; border-radius: 50%; background: #ef4444;
+  width: 8px; height: 8px; border-radius: 50%; background: var(--pd-alert);
 }
 
 /* ── FAB ──────────────────────────────────────────────────────── */
@@ -55,14 +55,14 @@
 
 /* ── Phone mockup on landing ──────────────────────────────────── */
 .phone-mock {
-  background: rgba(30,41,59,.8);
-  border: 1px solid rgba(99,102,241,.2);
+  background: var(--pd-surface);
+  border: 1px solid var(--pd-border);
   border-radius: 2rem; padding: 1.5rem 1rem;
   box-shadow: 0 20px 60px rgba(0,0,0,.5);
   width: 220px; margin: 0 auto;
 }
-.phone-mock-bar { height: 6px; background: rgba(255,255,255,.1); border-radius: 3px; overflow: hidden; }
-.phone-mock-bar-fill { height: 100%; background: linear-gradient(90deg,#6366f1,#ec4899); border-radius: 3px; }
+.phone-mock-bar { height: 6px; background: rgba(255,255,255,.05); border-radius: 3px; overflow: hidden; }
+.phone-mock-bar-fill { height: 100%; background: var(--pd-primary); border-radius: 3px; }
 
 /* ── Responsive Styling (Desktop / ≥992px) ────────────────────── */
 @media (min-width: 992px) {
@@ -72,7 +72,7 @@
     left: 0;
     bottom: 0;
     width: 260px;
-    background: rgba(15, 23, 42, 0.95);
+    background: var(--pd-surface);
     backdrop-filter: blur(16px);
     border-right: 1px solid var(--pd-border);
     display: flex;
@@ -98,9 +98,9 @@
   }
 
   .sidebar__item.active {
-    color: #ffffff;
-    background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.15));
-    border: 1px solid rgba(99, 102, 241, 0.25);
+    color: var(--pd-primary);
+    background: rgba(149,193,89,0.1); /* Neon Moss transparent */
+    border: 1px solid rgba(149,193,89,0.25);
   }
 
   .sidebar__badge {
@@ -110,7 +110,7 @@
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: #ef4444;
+    background: var(--pd-alert);
   }
   
   /* Restructure main content area */

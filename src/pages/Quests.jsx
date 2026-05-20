@@ -113,10 +113,8 @@ export default function Quests() {
                         <span className="badge bg-success rounded-pill">✅ Done</span>
                       ) : isFailedSpendLimit ? (
                         <span className="badge bg-danger rounded-pill">❌ Limit Exceeded</span>
-                      ) : tab === "completed" ? (
-                        null
                       ) : (
-                        <span className="badge rounded-pill" style={{ background: "rgba(99,102,241,.15)", color: "#818cf8", border: "1px solid rgba(99,102,241,.3)", fontSize: ".75rem" }}>
+                        <span className="badge rounded-pill" style={{ background: "rgba(234,179,8,.15)", color: "var(--pd-reward)", border: "1px solid rgba(234,179,8,.3)", fontSize: ".75rem" }}>
                           +{quest.pointsReward}pt
                         </span>
                       )}
@@ -171,7 +169,7 @@ export default function Quests() {
                                     <div className={`progress-bar ${isOverLimit ? "bg-danger" : ""}`} role="progressbar"
                                       style={{ 
                                         width: `${progressPercent}%`, 
-                                        background: isOverLimit ? undefined : "linear-gradient(90deg,#6366f1,#8b5cf6)" 
+                                        background: isOverLimit ? undefined : "var(--pd-primary)" 
                                       }}
                                       aria-valuenow={quest.progress} aria-valuemin={0} aria-valuemax={quest.target} />
                                   </div>
@@ -200,7 +198,7 @@ export default function Quests() {
                             <div className={`progress-bar ${isFailedSpendLimit ? "bg-danger" : ""}`} role="progressbar"
                               style={{ 
                                 width: `${Math.min((quest.progress / quest.target) * 100, 100)}%`, 
-                                background: isFailedSpendLimit ? undefined : "linear-gradient(90deg,#6366f1,#8b5cf6)" 
+                                background: isFailedSpendLimit ? undefined : "var(--pd-primary)" 
                               }}
                               aria-valuenow={quest.progress} aria-valuemin={0} aria-valuemax={quest.target} />
                           </div>
@@ -237,10 +235,10 @@ export default function Quests() {
                               key={idx} 
                               className="badge rounded-pill" 
                               style={{ 
-                                background: isCurrent ? "rgba(99, 102, 241, 0.08)" : "rgba(16, 185, 129, 0.08)", 
-                                color: isCurrent ? "#818cf8" : "#34d399", 
+                                background: isCurrent ? "rgba(234,179,8, 0.08)" : "rgba(149,193,89, 0.08)", 
+                                color: isCurrent ? "var(--pd-reward)" : "var(--pd-primary)", 
                                 fontSize: "0.68rem", 
-                                border: isCurrent ? "1px solid rgba(99, 102, 241, 0.15)" : "1px solid rgba(16, 185, 129, 0.15)", 
+                                border: isCurrent ? "1px solid rgba(234,179,8, 0.15)" : "1px solid rgba(149,193,89, 0.15)", 
                                 padding: "0.2rem 0.5rem" 
                               }}
                             >
@@ -270,9 +268,9 @@ export default function Quests() {
         )}
       </div>
 
-      <div className="card rounded-3 mt-3" style={{ background: "rgba(99,102,241,.06)", border: "1px solid rgba(99,102,241,.15)" }}>
+      <div className="card rounded-3 mt-3" style={{ background: "rgba(149,193,89,.06)", border: "1px solid rgba(149,193,89,.15)" }}>
         <div className="card-body py-2 px-3">
-          <p className="mb-0 small" style={{ color: "#818cf8" }}>💡 Quests are automatically tracked based on your logged expenses.</p>
+          <p className="mb-0 small" style={{ color: "var(--pd-primary)" }}>💡 Quests are automatically tracked based on your logged expenses.</p>
         </div>
       </div>
 

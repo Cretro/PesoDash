@@ -41,9 +41,8 @@ export default function Sidebar() {
     <aside className="sidebar d-none d-lg-flex">
       {/* Platform branding logo and title */}
       <div className="sidebar__brand mb-4 px-3 d-flex align-items-center gap-2">
-        <span style={{ fontSize: "1.6rem" }}>💰</span>
-        <span className="fw-black fs-4 text-white">
-          Peso<span className="gradient-text">Dash</span>
+        <span className="fw-bold fs-4 text-white tactical-title">
+          Peso<span style={{ color: "var(--pd-primary)" }}>Dash</span>
         </span>
       </div>
 
@@ -72,12 +71,6 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      {/* Sidebar Footer showcasing UN SDG 8 commitment */}
-      <div className="sidebar__footer mt-auto px-3 py-2 rounded-3" style={{ background: "rgba(255,255,255,.02)", border: "1px solid var(--pd-border)" }}>
-        <p className="mb-0 text-secondary" style={{ fontSize: ".7rem" }}>
-          SDG 8 · Financial Literacy
-        </p>
-      </div>
     </aside>
   );
 }

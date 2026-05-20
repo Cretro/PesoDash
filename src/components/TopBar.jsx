@@ -1,4 +1,5 @@
 import { useLocation } from "react-router-dom";
+import { FiHome, FiList, FiAward, FiBarChart2, FiTrendingUp, FiUser, FiCode, FiShield } from "react-icons/fi";
 
 // Mapping routes to standard page titles displayed on the header bar
 const PAGE_TITLES = {
@@ -10,6 +11,18 @@ const PAGE_TITLES = {
   "/profile":     "Profile",
   "/developers":  "The Team",
   "/admin":       "Admin Settings",
+};
+
+// Mapping routes to page icons
+const PAGE_ICONS = {
+  "/dashboard":   <FiHome />,
+  "/expenses":    <FiList />,
+  "/quests":      <FiAward />,
+  "/leaderboard": <FiBarChart2 />,
+  "/analytics":   <FiTrendingUp />,
+  "/profile":     <FiUser />,
+  "/developers":  <FiCode />,
+  "/admin":       <FiShield />,
 };
 
 /**
@@ -25,9 +38,11 @@ export default function TopBar() {
   
   return (
     <header className="top-bar">
-      <span style={{ fontSize: "1.3rem" }}>💰</span>
+      <span className="d-flex align-items-center" style={{ fontSize: "1.3rem", color: "var(--pd-primary)" }}>
+        {PAGE_ICONS[pathname] || "💰"}
+      </span>
       {/* Renders the resolved title from PAGE_TITLES key mapping. Falls back to "PesoDash" if path isn't mapped */}
-      <h1 className="top-bar__title">{PAGE_TITLES[pathname] || "PesoDash"}</h1>
+      <h1 className="top-bar__title tactical-title">{PAGE_TITLES[pathname] || "PesoDash"}</h1>
     </header>
   );
 }

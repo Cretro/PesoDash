@@ -81,7 +81,7 @@ export default function ExpenseForm({ onSuccess, initialData = null, expenseId =
       <div className="input-group mb-3"
         style={{ background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.1)", borderRadius: ".75rem", overflow: "hidden" }}>
         <span className="input-group-text fw-bold fs-4 border-0"
-          style={{ background: "transparent", color: "#6366f1" }}>₱</span>
+          style={{ background: "transparent", color: "var(--pd-primary)" }}>₱</span>
         <input
           id="expense-amount"
           type="number"
@@ -146,7 +146,7 @@ export default function ExpenseForm({ onSuccess, initialData = null, expenseId =
 
       <button
         type="submit"
-        className="btn gradient-btn w-100 fw-bold py-3"
+        className="btn btn-primary w-100 fw-bold py-3"
         style={{ minHeight: 52, borderRadius: ".875rem" }}
         disabled={loading}
         id="expense-form-submit"

@@ -22,8 +22,8 @@ export default function FAB() {
         <button
           className="btn btn-primary rounded-circle d-flex align-items-center justify-content-center shadow-lg"
           style={{ width: 56, height: 56, fontSize: "1.5rem",
-            background: "linear-gradient(135deg,#6366f1,#8b5cf6)", border: "none",
-            boxShadow: "0 4px 20px rgba(99,102,241,.5)" }}
+            background: "var(--pd-primary)", border: "none", color: "#151712",
+            boxShadow: "0 4px 20px rgba(149,193,89,.3)" }}
           onClick={() => setOpen(true)}
           aria-label="Add expense"
           id="fab-add-expense"
