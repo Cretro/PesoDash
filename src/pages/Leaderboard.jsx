@@ -22,7 +22,7 @@ function RankRow({ user, rank, isMe }) {
       <span className="fw-bold" style={{ minWidth: 32, color: rank <= 3 ? undefined : "#64748b", fontSize: ".9rem" }}>
         {rank <= 3 ? MEDALS[rank - 1] : `#${rank}`}
       </span>
-      <Avatar name={user.displayName || "User"} size={36} />
+      <Avatar name={user.displayName || "User"} gender={user.gender} size={36} />
       <div className="flex-fill">
         <p className="fw-semibold text-white mb-0 small">{user.displayName}{isMe ? " (You)" : ""}</p>
         <p className="text-secondary mb-0" style={{ fontSize: ".7rem" }}>🔥 {user.currentStreak || 0}-day streak</p>
@@ -55,7 +55,7 @@ function Podium({ users }) {
           {order.map((u, i) => (
             <div key={u?.id} className="d-flex flex-column align-items-center gap-1"
               style={{ transform: ranks[i] === 1 ? "translateY(-10px)" : undefined }}>
-              <Avatar name={u?.displayName || "User"} size={sizes[i]}
+              <Avatar name={u?.displayName || "User"} gender={u?.gender} size={sizes[i]}
                 style={{ border: `2px solid ${colors[i]}`, borderRadius: "50%" }} />
               <span style={{ fontSize: "1.1rem" }}>{MEDALS[ranks[i] - 1]}</span>
               <span className="fw-bold text-white" style={{ fontSize: ".75rem" }}>{u?.displayName?.split(" ")[0]}</span>

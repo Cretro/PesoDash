@@ -22,6 +22,7 @@ export default function Profile() {
 
   // Local configurations
   const [budget, setBudget] = useState(userProfile?.dailyBudget || 300);
+  const [gender, setGender] = useState(userProfile?.gender || "prefer_not_to_say");
   const [budgetError, setBudgetError] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -35,8 +36,8 @@ export default function Profile() {
     navigate("/");
   }
 
-  // Save the custom daily budget configured in input field back to Firestore
-  async function saveBudget() {
+  // Save the custom daily budget and gender settings back to Firestore
+  async function saveSettings() {
     setBudgetError("");
     if (!budget || isNaN(budget) || Number(budget) < 1) {
       setBudgetError("Daily budget must be at least ₱1.");
@@ -45,14 +46,17 @@ export default function Profile() {
 
     setSaving(true);
     try {
-      // Write value update back to user document in Firestore database
-      await updateDoc(doc(db, "users", currentUser.uid), { dailyBudget: Number(budget) });
+      // Write value updates back to user document in Firestore database
+      await updateDoc(doc(db, "users", currentUser.uid), {
+        dailyBudget: Number(budget),
+        gender: gender,
+      });
       // Update local React Context state so the change registers immediately throughout the app without page reload
-      setUserProfile({ ...userProfile, dailyBudget: Number(budget) });
+      setUserProfile({ ...userProfile, dailyBudget: Number(budget), gender: gender });
       setSaved(true);
       setTimeout(() => setSaved(false), 2000); // Visual indicator timeout reset
     } catch (err) {
-      setBudgetError(err.message || "Failed to save budget. Please try again.");
+      setBudgetError(err.message || "Failed to save settings. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -81,7 +85,7 @@ export default function Profile() {
       {/* Profile Header Block */}
       <div className="text-center mb-4">
         <div className="d-inline-block mb-3" style={{ borderRadius: "50%", boxShadow: "0 0 0 4px rgba(149,193,89,.3)" }}>
-          <Avatar name={currentUser?.displayName || "User"} size={80} />
+          <Avatar name={currentUser?.displayName || "User"} gender={userProfile?.gender} size={80} />
         </div>
         <h2 className="fw-black text-white mb-0">{currentUser?.displayName}</h2>
         <p className="text-secondary small mb-0">{currentUser?.email}</p>
@@ -105,17 +109,47 @@ export default function Profile() {
         ))}
       </div>
 
-      {/* Daily Budget Configuration Panel */}
+      {/* Unified Profile Settings Panel */}
       <div className="card rounded-3 glass-card mb-3">
         <div className="card-body">
-          <label className="form-label text-uppercase small fw-semibold text-secondary" htmlFor="profile-budget">
-            Daily Budget (₱)
-          </label>
-          <div className="d-flex gap-2">
-            <input id="profile-budget" type="number" value={budget} onChange={(e) => { setBudget(e.target.value); setBudgetError(""); }}
-              className="form-control" min={1} inputMode="numeric" />
-            <button className="btn btn-primary fw-bold px-4 rounded-3" onClick={saveBudget} disabled={saving} id="profile-save-budget-btn" style={{ minHeight: 44, whiteSpace: "nowrap" }}>
-              {saved ? "✅ Saved!" : saving ? "…" : "Save"}
+          <h3 className="fw-bold text-white mb-3" style={{ fontSize: "1rem" }}>⚙️ Settings</h3>
+          
+          <div className="row g-3">
+            <div className="col-12 col-md-6">
+              <label className="form-label text-uppercase small fw-semibold text-secondary" htmlFor="profile-budget">
+                Daily Budget (₱)
+              </label>
+              <input id="profile-budget" type="number" value={budget} onChange={(e) => { setBudget(e.target.value); setBudgetError(""); }}
+                className="form-control" min={1} inputMode="numeric" />
+            </div>
+
+            <div className="col-12 col-md-6">
+              <label className="form-label text-uppercase small fw-semibold text-secondary" htmlFor="profile-gender">
+                Gender (Optional)
+              </label>
+              <select
+                id="profile-gender"
+                value={gender}
+                onChange={(e) => setGender(e.target.value)}
+                className="form-select"
+                style={{
+                  background: "rgba(255, 255, 255, 0.05)",
+                  border: "1px solid rgba(255, 255, 255, 0.15)",
+                  color: "#fff",
+                  height: "38px",
+                  borderRadius: "0.375rem",
+                }}
+              >
+                <option value="prefer_not_to_say" style={{ background: "#1e293b", color: "#fff" }}>Prefer not to say</option>
+                <option value="female" style={{ background: "#1e293b", color: "#fff" }}>Female</option>
+                <option value="male" style={{ background: "#1e293b", color: "#fff" }}>Male</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="d-flex justify-content-end mt-3">
+            <button className="btn btn-primary fw-bold px-4 rounded-3" onClick={saveSettings} disabled={saving} id="profile-save-budget-btn" style={{ minHeight: 40 }}>
+              {saved ? "✅ Saved!" : saving ? "Saving..." : "Save Settings"}
             </button>
           </div>
           {budgetError && <div className="alert alert-danger py-2 small mt-2 mb-0">{budgetError}</div>}
@@ -150,7 +184,7 @@ export default function Profile() {
               <ul className="list-group rounded-3" style={{ overflow: "hidden" }}>
                 {incoming.map((f) => (
                   <li key={f.id} className="list-group-item d-flex align-items-center gap-3 px-3 py-2">
-                    <Avatar name={f.friendName || "User"} size={36} />
+                    <Avatar name={f.friendName || "User"} gender={f.friendGender} size={36} />
                     <div className="flex-fill">
                       <p className="fw-semibold text-white mb-0 small">{f.friendName}</p>
                       <p className="text-secondary mb-0" style={{ fontSize: ".7rem" }}>{f.friendEmail}</p>
@@ -172,7 +206,7 @@ export default function Profile() {
               <ul className="list-group rounded-3" style={{ overflow: "hidden" }}>
                 {accepted.map((f) => (
                   <li key={f.id} className="list-group-item d-flex align-items-center gap-3 px-3 py-2">
-                    <Avatar name={f.friendName || "User"} size={36} />
+                    <Avatar name={f.friendName || "User"} gender={f.friendGender} size={36} />
                     <div>
                       <p className="fw-semibold text-white mb-0 small">{f.friendName}</p>
                       <p className="text-secondary mb-0" style={{ fontSize: ".7rem" }}>{f.friendEmail}</p>
@@ -194,7 +228,7 @@ export default function Profile() {
               <ul className="list-group rounded-3" style={{ overflow: "hidden" }}>
                 {pending.map((f) => (
                   <li key={f.id} className="list-group-item d-flex align-items-center gap-3 px-3 py-2">
-                    <Avatar name={f.friendName || "User"} size={36} />
+                    <Avatar name={f.friendName || "User"} gender={f.friendGender} size={36} />
                     <div className="flex-fill">
                       <p className="fw-semibold text-white mb-0 small">{f.friendName}</p>
                     </div>

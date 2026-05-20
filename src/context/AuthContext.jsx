@@ -32,7 +32,7 @@ export function AuthProvider({ children }) {
    * 2. Sets their public auth display name.
    * 3. Seeds the initial Firestore collection record with default starting parameters.
    */
-  async function register(email, password, displayName) {
+  async function register(email, password, displayName, gender) {
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(cred.user, { displayName });
     
@@ -40,6 +40,7 @@ export function AuthProvider({ children }) {
     await setDoc(doc(db, "users", cred.user.uid), {
       displayName,
       email,
+      gender: gender || "prefer_not_to_say",
       totalPoints: 0,
       currentStreak: 0,
       dailyBudget: 300,
