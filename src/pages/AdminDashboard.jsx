@@ -55,7 +55,7 @@ export default function AdminDashboard() {
   // --- Add/Edit Quest Template Form State ---
   const [templateForm, setTemplateForm] = useState({
     questType: "streak",
-    period: "weekly",
+    period: "persistent",
     title: "",
     description: "",
     target: "",
@@ -174,7 +174,7 @@ export default function AdminDashboard() {
       // Reset form controls
       setTemplateForm({
         questType: "streak",
-        period: "weekly",
+        period: "persistent",
         title: "",
         description: "",
         target: "",
@@ -238,9 +238,7 @@ export default function AdminDashboard() {
     const isDaily = templateForm.period === "daily";
 
     if (qType === "streak") {
-      return isDaily
-        ? "Stay under your daily budget today"
-        : `Stay under your daily budget for ${target} days in a row this week`;
+      return `Stay under your daily budget for a consecutive streak of ${target} days`;
     }
     if (qType === "total_spend_limit" || qType === "category") {
       return isDaily
@@ -496,7 +494,7 @@ export default function AdminDashboard() {
                                   setEditingTemplate(temp);
                                   setTemplateForm({
                                     questType: temp.questType,
-                                    period: temp.period || "weekly",
+                                    period: temp.questType === "streak" ? "persistent" : (temp.period || "weekly"),
                                     title: temp.title,
                                     description: temp.description,
                                     target: temp.target,
@@ -794,9 +792,14 @@ export default function AdminDashboard() {
                         value={templateForm.questType}
                         onChange={(e) => {
                           const newType = e.target.value;
-                          // Auto-lock target to 1 when daily streak or daily zero_splurge is selected
-                          const isLockedTarget = ["streak", "zero_splurge_days"].includes(newType) && (templateForm.period || "weekly") === "daily";
-                          setTemplateForm({ ...templateForm, questType: newType, target: isLockedTarget ? 1 : templateForm.target });
+                          const newPeriod = newType === "streak" ? "persistent" : (templateForm.period === "persistent" ? "weekly" : templateForm.period);
+                          const isLockedTarget = ["zero_splurge_days"].includes(newType) && newPeriod === "daily";
+                          setTemplateForm({
+                            ...templateForm,
+                            questType: newType,
+                            period: newPeriod,
+                            target: isLockedTarget ? 1 : templateForm.target,
+                          });
                         }}
                         className="form-select text-white bg-dark border-secondary"
                       >
@@ -808,13 +811,11 @@ export default function AdminDashboard() {
                     </div>
                   </div>
 
-                  {/* Informational Help Alert describing types & constraints dynamically */}
                   <div className="alert bg-white bg-opacity-5 border border-white border-opacity-10 py-2.5 px-3 small text-secondary mb-0 rounded-3">
-                    {templateForm.period === "daily" ? (
+                    {templateForm.questType === "streak" ? (
+                      <span>🎯 <strong>Budget Streak</strong>: Counts consecutive days where daily spending is within daily budget. Target is consecutive days (e.g. 7). This quest is persistent and does not reset weekly/daily.</span>
+                    ) : templateForm.period === "daily" ? (
                       <>
-                        {templateForm.questType === "streak" && (
-                          <span>🎯 <strong>Daily streak</strong>: Checks if daily total spending today is within daily budget. Target is always 1 day.</span>
-                        )}
                         {templateForm.questType === "total_spend_limit" && (
                           <span>🎯 <strong>Daily spend limit</strong>: Keeps today's spending in category under target limit. Resets daily. Target is cash limit in pesos (e.g. 150).</span>
                         )}
@@ -827,9 +828,6 @@ export default function AdminDashboard() {
                       </>
                     ) : (
                       <>
-                        {templateForm.questType === "streak" && (
-                          <span>🎯 <strong>Weekly Streak</strong>: Counts consecutive days from Sunday where daily spending is within daily budget. Target is number of days (e.g. 5).</span>
-                        )}
                         {templateForm.questType === "total_spend_limit" && (
                           <span>🎯 <strong>Weekly Spend Limit</strong>: Keeps total spending in a category under target limit for the entire week. Resets Sunday. Target is in pesos (e.g. 1000).</span>
                         )}
@@ -843,24 +841,25 @@ export default function AdminDashboard() {
                     )}
                   </div>
 
-                  <div className="row g-2">
-                    <div className="col-12">
-                      <label className="form-label text-uppercase small fw-semibold text-secondary mb-1">Quest Period</label>
-                      <select
-                        value={templateForm.period || "weekly"}
-                        onChange={(e) => {
-                          const newPeriod = e.target.value;
-                          // Auto-lock target to 1 when switching to daily streak or daily zero_splurge mode
-                          const isLockedTarget = ["streak", "zero_splurge_days"].includes(templateForm.questType) && newPeriod === "daily";
-                          setTemplateForm({ ...templateForm, period: newPeriod, target: isLockedTarget ? 1 : templateForm.target });
-                        }}
-                        className="form-select text-white bg-dark border-secondary"
-                      >
-                        <option value="weekly">Weekly Reset</option>
-                        <option value="daily">Daily Reset</option>
-                      </select>
+                  {templateForm.questType !== "streak" && (
+                    <div className="row g-2">
+                      <div className="col-12">
+                        <label className="form-label text-uppercase small fw-semibold text-secondary mb-1">Quest Period</label>
+                        <select
+                          value={templateForm.period || "weekly"}
+                          onChange={(e) => {
+                            const newPeriod = e.target.value;
+                            const isLockedTarget = templateForm.questType === "zero_splurge_days" && newPeriod === "daily";
+                            setTemplateForm({ ...templateForm, period: newPeriod, target: isLockedTarget ? 1 : templateForm.target });
+                          }}
+                          className="form-select text-white bg-dark border-secondary"
+                        >
+                          <option value="weekly">Weekly Reset</option>
+                          <option value="daily">Daily Reset</option>
+                        </select>
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   <div>
                     <label className="form-label text-uppercase small fw-semibold text-secondary mb-1">Title</label>
@@ -914,8 +913,8 @@ export default function AdminDashboard() {
                         onChange={(e) => setTemplateForm({ ...templateForm, target: e.target.value })}
                         className="form-control text-white bg-dark border-secondary"
                         // Lock to 1 for daily streak/zero_splurge — the engine hardcodes progress as 0 or 1 for these, making any other value impossible to reach
-                        readOnly={["streak", "zero_splurge_days"].includes(templateForm.questType) && templateForm.period === "daily"}
-                        style={["streak", "zero_splurge_days"].includes(templateForm.questType) && templateForm.period === "daily" ? { opacity: 0.5, cursor: "not-allowed" } : {}}
+                        readOnly={templateForm.questType === "zero_splurge_days" && templateForm.period === "daily"}
+                        style={templateForm.questType === "zero_splurge_days" && templateForm.period === "daily" ? { opacity: 0.5, cursor: "not-allowed" } : {}}
                       />
                     </div>
                     <div className="col-6">
