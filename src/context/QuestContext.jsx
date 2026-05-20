@@ -6,6 +6,7 @@ import {
   onSnapshot,
   addDoc,
   updateDoc,
+  deleteDoc,
   doc,
   serverTimestamp,
   arrayUnion,
@@ -108,6 +109,7 @@ export function QuestProvider({ children }) {
   const { expenses } = useExpenses();
   const templateMigrationDone = useRef(false);
   const questMigrationDone = useRef(false);
+  const initializingRef = useRef(false);
 
   // Effect: Sync true time from worldtimeapi on mount to patch the Time Travel exploit
   useEffect(() => {
@@ -172,6 +174,7 @@ export function QuestProvider({ children }) {
     if (!currentUser || !timeSynced) {
       setQuests([]);
       setLoading(true);
+      initializingRef.current = false;
       return;
     }
     const q = query(
@@ -204,7 +207,7 @@ export function QuestProvider({ children }) {
 
   // Effect: Declares side-effects for initializing quests if none are found in the database.
   useEffect(() => {
-    if (loading || !currentUser || initializing) return;
+    if (loading || !currentUser || initializing || initializingRef.current) return;
     if (quests.length === 0) {
       initializeQuests();
     }
@@ -213,6 +216,7 @@ export function QuestProvider({ children }) {
   // Effect: Audits resets and syncs quests with templates cleanly outside onSnapshot listener.
   useEffect(() => {
     if (loading || !quests.length || !currentUser) return;
+    deduplicateQuests(quests);
     syncQuestsWithTemplates(quests);
     checkAndResetQuests(quests, expenses);
   }, [loading, quests.map((q) => q.id).join(","), templates.length, expenses.length, currentUser]);
@@ -526,7 +530,8 @@ export function QuestProvider({ children }) {
    * Purpose: Seeds active quest documents for newly registered users.
    */
   async function initializeQuests() {
-    if (!currentUser || initializing || templates.length === 0) return;
+    if (!currentUser || initializingRef.current || templates.length === 0) return;
+    initializingRef.current = true;
     setInitializing(true);
     try {
       const weekStartStr = getCurrentWeekStart();
@@ -555,6 +560,42 @@ export function QuestProvider({ children }) {
       }
     } finally {
       setInitializing(false);
+    }
+  }
+
+  /**
+   * SELF-HEALING: deduplicateQuests
+   * Purpose: Checks if the user has duplicate quests (e.g. from rapid double-clicks/StrictMode triggers)
+   * and automatically removes duplicate Firestore documents, keeping the one with progress.
+   */
+  async function deduplicateQuests(questData) {
+    const seenTitles = new Set();
+    const duplicatesToDelete = [];
+
+    // Sort: prioritize keeping completed quests or quests with more progress
+    const sortedQuests = [...questData].sort((a, b) => {
+      if (a.completed && !b.completed) return -1;
+      if (!a.completed && b.completed) return 1;
+      return (b.progress || 0) - (a.progress || 0);
+    });
+
+    for (const quest of sortedQuests) {
+      if (seenTitles.has(quest.title)) {
+        duplicatesToDelete.push(quest.id);
+      } else {
+        seenTitles.add(quest.title);
+      }
+    }
+
+    if (duplicatesToDelete.length > 0) {
+      console.warn("[QuestContext] Self-healing: deleting duplicate quests", duplicatesToDelete);
+      for (const id of duplicatesToDelete) {
+        try {
+          await deleteDoc(doc(db, "quests", id));
+        } catch (err) {
+          console.error("Failed to delete duplicate quest:", id, err);
+        }
+      }
     }
   }
 
