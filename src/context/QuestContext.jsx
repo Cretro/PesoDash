@@ -88,11 +88,31 @@ function getCurrentWeekDates() {
 
 export function QuestProvider({ children }) {
   const [quests, setQuests] = useState([]);
-  const [templates, setTemplates] = useState(QUEST_TEMPLATES);
+  // Start with empty array; populated from Firestore or hardcoded fallback below
+  const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [initializing, setInitializing] = useState(false);
   const { currentUser, userProfile, isAdmin } = useAuth();
   const { expenses } = useExpenses();
+
+  // Effect: Subscribes in real-time to the admin-managed '/questTemplates' collection.
+  // When the admin adds/edits/removes templates in the AdminDashboard, this keeps 'templates'
+  // in sync so that newly registered users are seeded with the latest set of quests.
+  // Falls back to the hardcoded QUEST_TEMPLATES if the Firestore collection is still empty.
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, "questTemplates"), (snap) => {
+      if (!snap.empty) {
+        setTemplates(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      } else {
+        // No admin templates configured yet, use the hardcoded defaults
+        setTemplates(QUEST_TEMPLATES);
+      }
+    }, (err) => {
+      console.error("QuestContext: Failed to load questTemplates, using defaults.", err);
+      setTemplates(QUEST_TEMPLATES);
+    });
+    return unsub;
+  }, []);
 
   // Effect: Subscribes in real-time to the active user's quests.
   // Query filters the global 'quests' collection to matching UIDs: where("uid", "==", currentUser.uid)

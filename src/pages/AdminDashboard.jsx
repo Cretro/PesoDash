@@ -783,7 +783,12 @@ export default function AdminDashboard() {
                       <label className="form-label text-uppercase small fw-semibold text-secondary mb-1">Quest Type</label>
                       <select
                         value={templateForm.targetType || templateForm.questType}
-                        onChange={(e) => setTemplateForm({ ...templateForm, targetType: e.target.value, questType: e.target.value })}
+                        onChange={(e) => {
+                          const newType = e.target.value;
+                          // Auto-lock target to 1 when daily streak or daily zero_splurge is selected
+                          const isLockedTarget = ["streak", "zero_splurge_days"].includes(newType) && (templateForm.period || "weekly") === "daily";
+                          setTemplateForm({ ...templateForm, targetType: newType, questType: newType, target: isLockedTarget ? 1 : templateForm.target });
+                        }}
                         className="form-select text-white bg-dark border-secondary"
                       >
                         <option value="streak">Budget Streak (Days)</option>
@@ -834,7 +839,12 @@ export default function AdminDashboard() {
                       <label className="form-label text-uppercase small fw-semibold text-secondary mb-1">Quest Period</label>
                       <select
                         value={templateForm.period || "weekly"}
-                        onChange={(e) => setTemplateForm({ ...templateForm, period: e.target.value })}
+                        onChange={(e) => {
+                          const newPeriod = e.target.value;
+                          // Auto-lock target to 1 when switching to daily streak or daily zero_splurge mode
+                          const isLockedTarget = ["streak", "zero_splurge_days"].includes(templateForm.targetType || templateForm.questType) && newPeriod === "daily";
+                          setTemplateForm({ ...templateForm, period: newPeriod, target: isLockedTarget ? 1 : templateForm.target });
+                        }}
                         className="form-select text-white bg-dark border-secondary"
                       >
                         <option value="weekly">Weekly Reset</option>
@@ -894,6 +904,9 @@ export default function AdminDashboard() {
                         value={templateForm.target}
                         onChange={(e) => setTemplateForm({ ...templateForm, target: e.target.value })}
                         className="form-control text-white bg-dark border-secondary"
+                        // Lock to 1 for daily streak/zero_splurge — the engine hardcodes progress as 0 or 1 for these, making any other value impossible to reach
+                        readOnly={["streak", "zero_splurge_days"].includes(templateForm.targetType || templateForm.questType) && templateForm.period === "daily"}
+                        style={["streak", "zero_splurge_days"].includes(templateForm.targetType || templateForm.questType) && templateForm.period === "daily" ? { opacity: 0.5, cursor: "not-allowed" } : {}}
                       />
                     </div>
                     <div className="col-6">
