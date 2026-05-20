@@ -151,7 +151,7 @@ function calculatePastStreak(expenseData, dailyBudget, todayStr) {
     if (dayTotal <= dailyBudget) {
       streak++;
     } else {
-      break; 
+      break;
     }
 
     currentDate.setDate(currentDate.getDate() - 1); // Move back another day
@@ -188,7 +188,7 @@ export function QuestProvider({ children }) {
         const timeoutId = setTimeout(() => controller.abort(), 2000); // 2s timeout limit
         const res = await fetch("https://worldtimeapi.org/api/timezone/Asia/Manila", { signal: controller.signal });
         clearTimeout(timeoutId);
-        
+
         if (res.ok) {
           const data = await res.json();
           const trueTime = new Date(data.utc_datetime).getTime();
@@ -353,9 +353,9 @@ export function QuestProvider({ children }) {
           newProgress = calculatePastStreak(expenseData, dailyBudget, todayStr);
         }
 
-      // ----------------------------------------------------
-      // PATH B: Category Limit Target Days (Stay under target amount for X days in the week)
-      // ----------------------------------------------------
+        // ----------------------------------------------------
+        // PATH B: Category Limit Target Days (Stay under target amount for X days in the week)
+        // ----------------------------------------------------
       } else if (qType === "days_under_category_limit") {
         let daysCount = 0;
         for (const date of activeDates) {
@@ -368,9 +368,9 @@ export function QuestProvider({ children }) {
         }
         newProgress = daysCount;
 
-      // ----------------------------------------------------
-      // PATH C: Zero Splurge Days (Log ₱0 spent on specific categories)
-      // ----------------------------------------------------
+        // ----------------------------------------------------
+        // PATH C: Zero Splurge Days (Log ₱0 spent on specific categories)
+        // ----------------------------------------------------
       } else if (qType === "zero_splurge_days" || qType === "zero_splurge") {
         if (isDaily) {
           const catSpend = todayExpenses
@@ -392,18 +392,18 @@ export function QuestProvider({ children }) {
           newProgress = quest.questType === "zero_splurge" ? (zeroDays > 0 ? 1 : 0) : zeroDays;
         }
 
-      // ----------------------------------------------------
-      // PATH D: Total Category Spend Limits (Spend <= target amount total for the week)
-      // ----------------------------------------------------
+        // ----------------------------------------------------
+        // PATH D: Total Category Spend Limits (Spend <= target amount total for the week)
+        // ----------------------------------------------------
       } else if (qType === "category" || qType === "total_spend_limit") {
         const totalSpent = activeExpenses
           .filter((e) => e.category === qCategory)
           .reduce((sum, e) => sum + Number(e.amount), 0);
         newProgress = totalSpent;
 
-      // ----------------------------------------------------
-      // PATH E: Savings Goal (Remaining budget: (daily budget * elapsed days) - total spend)
-      // ----------------------------------------------------
+        // ----------------------------------------------------
+        // PATH E: Savings Goal (Remaining budget: (daily budget * elapsed days) - total spend)
+        // ----------------------------------------------------
       } else if (qType === "savings_goal") {
         if (isDaily) {
           const totalSpent = todayExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
@@ -592,9 +592,9 @@ export function QuestProvider({ children }) {
           await updateDoc(doc(db, "quests", quest.id), updatePayload);
         }
 
-      // ====================================================
-      // 3. WEEKLY QUEST AUDIT
-      // ====================================================
+        // ====================================================
+        // 3. WEEKLY QUEST AUDIT
+        // ====================================================
       } else {
         if (quest.weekStart && quest.weekStart < currentWeek) {
           const updatePayload = {
@@ -666,7 +666,6 @@ export function QuestProvider({ children }) {
     }
   }
 
-<<<<<<< HEAD
   /**
    * SELF-HEALING: deduplicateQuests
    * Purpose: Checks if the user has duplicate quests (e.g. from rapid double-clicks/StrictMode triggers)
