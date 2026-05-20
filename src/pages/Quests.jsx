@@ -1,10 +1,26 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuests } from "../context/QuestContext";
 
 export default function Quests() {
   const { quests, loading } = useQuests();
   const [tab, setTab] = useState("active");
+  const [timeToMidnight, setTimeToMidnight] = useState("");
+
+  useEffect(() => {
+    function updateCountdown() {
+      const now = new Date();
+      const midnight = new Date();
+      midnight.setHours(24, 0, 0, 0); // Next midnight
+      const diffMs = midnight - now;
+      const hours = Math.max(0, Math.floor(diffMs / 3600000));
+      const minutes = Math.max(0, Math.floor((diffMs % 3600000) / 60000));
+      setTimeToMidnight(`${hours}h ${minutes}m remaining`);
+    }
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Active = not completed this week
   const active = quests.filter((q) => !q.completed);
@@ -34,10 +50,28 @@ export default function Quests() {
         <AnimatePresence mode="wait">
           {list.map((quest, i) => {
             const isCompletedThisWeek = quest.completed;
-            const lastEntry = quest.completionHistory?.at(-1);
+            const completions = [...(quest.completionHistory || [])];
+            if (quest.completed) {
+              const currentResetRef = quest.period === "daily"
+                ? quest.lastResetDate || new Date().toISOString().split("T")[0]
+                : quest.weekStart || new Date().toISOString().split("T")[0];
+              const alreadyExists = completions.some(
+                (c) => c.date === currentResetRef || c.weekStart === currentResetRef
+              );
+              if (!alreadyExists) {
+                completions.push({
+                  completedAt: new Date().toISOString().split("T")[0],
+                  isCurrent: true
+                });
+              }
+            }
+            const lastEntry = completions.at(-1);
             const lastCompletedDate = lastEntry?.completedAt
               ? new Date(lastEntry.completedAt).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })
               : null;
+            
+            const qType = quest.targetType || quest.questType || "streak";
+            const isFailedSpendLimit = (qType === "category" || qType === "total_spend_limit") && quest.progress > quest.target;
 
             return (
               <motion.div key={quest.id} className="card rounded-4 glass-card"
@@ -57,14 +91,17 @@ export default function Quests() {
 
                     {/* Badge — show completion status */}
                     <div className="d-flex flex-column align-items-end gap-1">
-                      {isCompletedThisWeek
-                        ? <span className="badge bg-success rounded-pill">✅ Done</span>
-                        : tab === "completed"
-                          ? null
-                          : <span className="badge rounded-pill" style={{ background: "rgba(99,102,241,.15)", color: "#818cf8", border: "1px solid rgba(99,102,241,.3)", fontSize: ".75rem" }}>
-                              +{quest.pointsReward}pt
-                            </span>
-                      }
+                      {isCompletedThisWeek ? (
+                        <span className="badge bg-success rounded-pill">✅ Done</span>
+                      ) : isFailedSpendLimit ? (
+                        <span className="badge bg-danger rounded-pill">❌ Limit Exceeded</span>
+                      ) : tab === "completed" ? (
+                        null
+                      ) : (
+                        <span className="badge rounded-pill" style={{ background: "rgba(99,102,241,.15)", color: "#818cf8", border: "1px solid rgba(99,102,241,.3)", fontSize: ".75rem" }}>
+                          +{quest.pointsReward}pt
+                        </span>
+                      )}
                       {/* Times completed badge */}
                       {(quest.timesCompleted > 0) && (
                         <span className="badge rounded-pill" style={{ background: "rgba(245,158,11,.15)", color: "#f59e0b", border: "1px solid rgba(245,158,11,.3)", fontSize: ".72rem" }}>
@@ -74,27 +111,128 @@ export default function Quests() {
                     </div>
                   </div>
 
-                  {/* Progress bar — only for active quests not yet completed */}
-                  {!isCompletedThisWeek && tab === "active" && (
-                    <>
-                      <div className="progress mb-1" style={{ height: 6 }}>
-                        <div className="progress-bar" role="progressbar"
-                          style={{ width: `${Math.min((quest.progress / quest.target) * 100, 100)}%`, background: "linear-gradient(90deg,#6366f1,#8b5cf6)" }}
-                          aria-valuenow={quest.progress} aria-valuemin={0} aria-valuemax={quest.target} />
-                      </div>
-                      <p className="text-secondary mb-0 text-end" style={{ fontSize: ".72rem" }}>
-                        {quest.questType === "category"
-                          ? `₱${quest.progress} / ₱${quest.target}`
-                          : `${quest.progress} / ${quest.target} days`}
-                      </p>
-                    </>
+                  {/* Progress / Status display — only for active quests */}
+                  {tab === "active" && (
+                    <div className="mt-2">
+                      {quest.period === "daily" ? (
+                        // Daily Quest Layout
+                        <>
+                          {(qType === "streak" || qType === "zero_splurge_days" || qType === "zero_splurge") ? (
+                            // Binary Daily Quests (On Track vs Failed)
+                            quest.progress === 1 ? (
+                              <div className="d-flex align-items-center justify-content-between p-2 rounded-3" 
+                                style={{ background: "rgba(16, 185, 129, 0.06)", border: "1px solid rgba(16, 185, 129, 0.15)", color: "#34d399" }}>
+                                <span className="small fw-semibold">
+                                  ⏳ On Track ({qType === "streak" ? "Under Budget" : `₱0 on ${quest.category || "Others"}`})
+                                </span>
+                                <span className="small text-secondary font-monospace" style={{ fontSize: ".72rem" }}>
+                                  {timeToMidnight}
+                                </span>
+                              </div>
+                            ) : (
+                              <div className="d-flex align-items-center justify-content-between p-2 rounded-3" 
+                                style={{ background: "rgba(239, 68, 68, 0.06)", border: "1px solid rgba(239, 68, 68, 0.15)", color: "#f87171" }}>
+                                <span className="small fw-semibold">
+                                  ❌ Failed ({qType === "streak" ? "Exceeded Budget" : `Spent on ${quest.category || "Others"}`})
+                                </span>
+                                <span className="small text-secondary font-monospace" style={{ fontSize: ".72rem" }}>
+                                  Resets at midnight
+                                </span>
+                              </div>
+                            )
+                          ) : (
+                            // Accumulative Daily Quests (Total Spend Limit / Category / Savings Goal)
+                            (() => {
+                              const isOverLimit = (qType === "category" || qType === "total_spend_limit") && quest.progress > quest.target;
+                              const isGoalMet = qType === "savings_goal" && quest.progress >= quest.target;
+                              const isFailing = isOverLimit;
+                              const progressPercent = Math.min((quest.progress / quest.target) * 100, 100);
+                              
+                              return (
+                                <>
+                                  <div className="progress mb-1" style={{ height: 6 }}>
+                                    <div className={`progress-bar ${isFailing ? "bg-danger" : ""}`} role="progressbar"
+                                      style={{ 
+                                        width: `${progressPercent}%`, 
+                                        background: isFailing ? undefined : "linear-gradient(90deg,#6366f1,#8b5cf6)" 
+                                      }}
+                                      aria-valuenow={quest.progress} aria-valuemin={0} aria-valuemax={quest.target} />
+                                  </div>
+                                  <div className="d-flex justify-content-between align-items-center mt-1">
+                                    <span className={`small fw-semibold ${isFailing ? "text-danger" : "text-success"}`} style={{ fontSize: ".72rem" }}>
+                                      {isFailing 
+                                        ? "❌ Budget Limit Exceeded" 
+                                        : isGoalMet 
+                                          ? "⏳ On Track (Goal Achieved)" 
+                                          : "⏳ On Track"
+                                      }
+                                    </span>
+                                    <span className="text-secondary font-monospace" style={{ fontSize: ".72rem" }}>
+                                      ₱{quest.progress} / ₱{quest.target} • {isFailing ? "Resets at midnight" : timeToMidnight}
+                                    </span>
+                                  </div>
+                                </>
+                              );
+                            })()
+                          )}
+                        </>
+                      ) : (
+                        // Weekly Quest Layout
+                        <>
+                          <div className="progress mb-1" style={{ height: 6 }}>
+                            <div className={`progress-bar ${isFailedSpendLimit ? "bg-danger" : ""}`} role="progressbar"
+                              style={{ 
+                                width: `${Math.min((quest.progress / quest.target) * 100, 100)}%`, 
+                                background: isFailedSpendLimit ? undefined : "linear-gradient(90deg,#6366f1,#8b5cf6)" 
+                              }}
+                              aria-valuenow={quest.progress} aria-valuemin={0} aria-valuemax={quest.target} />
+                          </div>
+                          <div className="d-flex justify-content-between align-items-center mt-1">
+                            <span className={`small fw-semibold ${isFailedSpendLimit ? "text-danger" : "text-secondary"}`} style={{ fontSize: ".72rem" }}>
+                              {isFailedSpendLimit ? "❌ Limit Exceeded" : "Weekly Quest"}
+                            </span>
+                            <span className="text-secondary" style={{ fontSize: ".72rem" }}>
+                              {qType === "category" || qType === "total_spend_limit" || qType === "savings_goal"
+                                ? `₱${quest.progress} / ₱${quest.target}`
+                                : `${quest.progress} / ${quest.target} days`}
+                            </span>
+                          </div>
+                        </>
+                      )}
+                    </div>
                   )}
 
-                  {/* Last completed date — shown on completed tab */}
-                  {tab === "completed" && lastCompletedDate && (
-                    <p className="text-secondary mb-0" style={{ fontSize: ".75rem" }}>
-                      Last completed: {lastCompletedDate}
-                    </p>
+                  {/* Detailed completion history log */}
+                  {tab === "completed" && completions.length > 0 && (
+                    <div className="mt-2 pt-2 border-top border-white border-opacity-5">
+                      <p className="text-secondary small fw-bold mb-1.5" style={{ fontSize: "0.65rem", letterSpacing: "0.05em", textTransform: "uppercase" }}>
+                        Completion Log ({quest.timesCompleted || completions.length}x):
+                      </p>
+                      <div className="d-flex flex-wrap gap-1.5">
+                        {completions.map((entry, idx) => {
+                          const dateVal = entry.completedAt || entry.date || entry.weekStart;
+                          const formatted = dateVal 
+                            ? new Date(dateVal).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })
+                            : "Unknown Date";
+                          const isCurrent = entry.isCurrent;
+                          return (
+                            <span 
+                              key={idx} 
+                              className="badge rounded-pill" 
+                              style={{ 
+                                background: isCurrent ? "rgba(99, 102, 241, 0.08)" : "rgba(16, 185, 129, 0.08)", 
+                                color: isCurrent ? "#818cf8" : "#34d399", 
+                                fontSize: "0.68rem", 
+                                border: isCurrent ? "1px solid rgba(99, 102, 241, 0.15)" : "1px solid rgba(16, 185, 129, 0.15)", 
+                                padding: "0.2rem 0.5rem" 
+                              }}
+                            >
+                              📅 {formatted} {isCurrent && "(Current Cycle)"}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    </div>
                   )}
                 </div>
               </motion.div>

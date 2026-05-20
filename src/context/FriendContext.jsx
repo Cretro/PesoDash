@@ -20,6 +20,9 @@ export function FriendProvider({ children }) {
     const unsub = onSnapshot(q, (snap) => {
       setFriends(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
       setLoading(false);
+    }, (err) => {
+      console.error("FriendContext onSnapshot failed:", err);
+      setLoading(false);
     });
     return unsub;
   }, [currentUser]);

@@ -1,6 +1,7 @@
 import { NavLink } from "react-router-dom";
-import { FiHome, FiList, FiAward, FiBarChart2, FiUser, FiTrendingUp, FiCode } from "react-icons/fi";
+import { FiHome, FiList, FiAward, FiBarChart2, FiUser, FiTrendingUp, FiCode, FiShield } from "react-icons/fi";
 import { useFriends } from "../context/FriendContext";
+import { useAuth } from "../context/AuthContext";
 
 const sidebarLinks = [
   { to: "/dashboard",   icon: <FiHome />,     label: "Home" },
@@ -14,6 +15,12 @@ const sidebarLinks = [
 
 export default function Sidebar() {
   const { pendingCount } = useFriends();
+  const { isAdmin } = useAuth();
+
+  const activeLinks = [...sidebarLinks];
+  if (isAdmin) {
+    activeLinks.push({ to: "/admin", icon: <FiShield />, label: "Admin Settings" });
+  }
 
   return (
     <aside className="sidebar d-none d-lg-flex">
@@ -27,7 +34,7 @@ export default function Sidebar() {
 
       {/* Nav Menu */}
       <nav className="nav flex-column gap-2 flex-grow-1">
-        {sidebarLinks.map((link) => (
+        {activeLinks.map((link) => (
           <NavLink
             key={link.to}
             to={link.to}

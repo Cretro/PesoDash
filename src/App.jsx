@@ -4,6 +4,7 @@ import { ExpenseProvider } from "./context/ExpenseContext";
 import { QuestProvider }  from "./context/QuestContext";
 import { FriendProvider } from "./context/FriendContext";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AdminRoute from "./components/AdminRoute";
 import TopBar    from "./components/TopBar";
 import BottomNav from "./components/BottomNav";
 import FAB       from "./components/FAB";
@@ -19,6 +20,7 @@ import Leaderboard from "./pages/Leaderboard";
 import Analytics  from "./pages/Analytics";
 import Profile    from "./pages/Profile";
 import Developers from "./pages/Developers";
+import AdminDashboard from "./pages/AdminDashboard";
 
 import "./App.css";
 
@@ -65,6 +67,13 @@ export default function App() {
                       </ProtectedRoute>
                     } />
                   ))}
+                   <Route path="/admin" element={
+                    <ProtectedRoute>
+                      <AdminRoute>
+                        <AppLayout><AdminDashboard /></AppLayout>
+                      </AdminRoute>
+                    </ProtectedRoute>
+                  } />
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
               </div>
