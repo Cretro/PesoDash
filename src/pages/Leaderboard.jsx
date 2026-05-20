@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { collection, query, orderBy, limit, onSnapshot, doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase/firebase";
 import { useAuth } from "../context/AuthContext";
@@ -101,6 +101,7 @@ export default function Leaderboard() {
   // Friend documents only store ID strings. To show names and streaks, we must fetch
   // full user documents from `/users`.
   // We use Promise.all to trigger all fetches in parallel for maximum network efficiency.
+  // Decoupled from `global` state: friend profiles only refetch when the accepted list changes.
   useEffect(() => {
     if (!currentUser || accepted.length === 0) { setFriendUsers([]); return; }
     const fetchAll = async () => {
@@ -109,17 +110,24 @@ export default function Leaderboard() {
         accepted.map((f) => getDoc(doc(db, "users", f.friendUid)))
       );
       
-      const me = global.find((u) => u.id === currentUser.uid);
       const friends = docs.filter((d) => d.exists()).map((d) => ({ id: d.id, ...d.data() }));
-      
-      // Combine the current user + friends, sort them locally by points
-      const combined = me ? [me, ...friends.filter((f) => f.id !== currentUser.uid)] : friends;
-      setFriendUsers(combined.sort((a, b) => (b.totalPoints || 0) - (a.totalPoints || 0)));
+      setFriendUsers(friends);
     };
     fetchAll();
-  }, [accepted, global, currentUser]);
+  }, [accepted, currentUser]);
 
-  const list      = tab === "global" ? global : friendUsers;
+  // Merge the current user into the friend list using the already-loaded global data.
+  // This avoids refetching friend profiles every time global rankings change.
+  const friendList = useMemo(() => {
+    if (!currentUser) return friendUsers;
+    const me = global.find((u) => u.id === currentUser.uid);
+    const combined = me
+      ? [me, ...friendUsers.filter((f) => f.id !== currentUser.uid)]
+      : friendUsers;
+    return combined.sort((a, b) => (b.totalPoints || 0) - (a.totalPoints || 0));
+  }, [friendUsers, global, currentUser]);
+
+  const list      = tab === "global" ? global : friendList;
   // Locate index of current user to evaluate if they are in the top 10
   const myRank    = list.findIndex((u) => u.id === currentUser?.uid) + 1;
   const top10     = list.slice(0, 10);

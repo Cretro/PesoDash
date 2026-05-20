@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "../firebase/firebase";
-import { useAuth }    from "../context/AuthContext";
+import { useAuth } from "../context/AuthContext";
 import { useFriends } from "../context/FriendContext";
 import Avatar from "../components/Avatar";
 
@@ -21,17 +21,17 @@ export default function Profile() {
   const navigate = useNavigate();
 
   // Local configurations
-  const [budget,     setBudget]     = useState(userProfile?.dailyBudget || 300);
-  const [saving,     setSaving]     = useState(false);
-  const [saved,      setSaved]      = useState(false);
+  const [budget, setBudget] = useState(userProfile?.dailyBudget || 300);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [friendEmail, setFriendEmail] = useState("");
-  const [friendMsg,  setFriendMsg]  = useState({ text: "", type: "" });
-  const [sending,    setSending]    = useState(false);
+  const [friendMsg, setFriendMsg] = useState({ text: "", type: "" });
+  const [sending, setSending] = useState(false);
 
   // Trigger AuthContext signOut function and redirect user back to Landing index page
-  async function handleLogout() { 
-    await logout(); 
-    navigate("/"); 
+  async function handleLogout() {
+    await logout();
+    navigate("/");
   }
 
   // Save the custom daily budget configured in input field back to Firestore
@@ -41,8 +41,8 @@ export default function Profile() {
     await updateDoc(doc(db, "users", currentUser.uid), { dailyBudget: Number(budget) });
     // Update local React Context state so the change registers immediately throughout the app without page reload
     setUserProfile({ ...userProfile, dailyBudget: Number(budget) });
-    setSaving(false); 
-    setSaved(true); 
+    setSaving(false);
+    setSaved(true);
     setTimeout(() => setSaved(false), 2000); // Visual indicator timeout reset
   }
 
@@ -57,9 +57,9 @@ export default function Profile() {
       setFriendEmail("");
     } catch (err) {
       setFriendMsg({ text: err.message, type: "danger" });
-    } finaly: { 
-      setSending(false); 
-      setTimeout(() => setFriendMsg({ text: "", type: "" }), 3000); 
+    } finally {
+      setSending(false);
+      setTimeout(() => setFriendMsg({ text: "", type: "" }), 3000);
     }
   }
 
@@ -79,7 +79,7 @@ export default function Profile() {
       <div className="row g-2 mb-4">
         {[
           { label: "Total Points", value: userProfile?.totalPoints || 0 },
-          { label: "Day Streak",   value: userProfile?.currentStreak || 0 },
+          { label: "Day Streak", value: userProfile?.currentStreak || 0 },
           { label: "Daily Budget", value: `₱${userProfile?.dailyBudget || 300}` },
         ].map((s) => (
           <div className="col-4" key={s.label}>
@@ -100,12 +100,13 @@ export default function Profile() {
             Daily Budget (₱)
           </label>
           <div className="d-flex gap-2">
-            <input id="profile-budget" type="number" value={budget} onChange={(e) => setBudget(e.target.value)}
+            <input id="profile-budget" type="number" value={budget} onChange={(e) => { setBudget(e.target.value); setBudgetError(""); }}
               className="form-control" min={1} inputMode="numeric" />
             <button className="btn gradient-btn fw-bold px-4 rounded-3" onClick={saveBudget} disabled={saving} id="profile-save-budget-btn" style={{ minHeight: 44, whiteSpace: "nowrap" }}>
               {saved ? "✅ Saved!" : saving ? "…" : "Save"}
             </button>
           </div>
+          {budgetError && <div className="alert alert-danger py-2 small mt-2 mb-0">{budgetError}</div>}
         </div>
       </div>
 
