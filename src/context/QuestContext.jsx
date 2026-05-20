@@ -51,11 +51,20 @@ const QUEST_TEMPLATES = [
   },
 ];
 
+/**
+ * Anti-Cheat: Fetches the true time offset to prevent users from manipulating 
+ * their local PC clock to farm daily points.
+ */
+function getTrueDate() {
+  const offset = window.__TIME_OFFSET__ || 0;
+  return new Date(Date.now() + offset);
+}
+
 /** 
  * Helper: Returns a "YYYY-MM-DD" date string in Philippine Standard Time (PST).
  * Used for consistency across different users, preventing local timezone skew bugs.
  */
-function getPHDateString(date = new Date()) {
+function getPHDateString(date = getTrueDate()) {
   const ph = new Date(date.toLocaleString("en-US", { timeZone: "Asia/Manila" }));
   const y = ph.getFullYear();
   const m = String(ph.getMonth() + 1).padStart(2, "0");
@@ -68,7 +77,7 @@ function getPHDateString(date = new Date()) {
  * Used to identify when a weekly quest cycle starts and ends.
  */
 function getCurrentWeekStart() {
-  const ph = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Manila" }));
+  const ph = new Date(getTrueDate().toLocaleString("en-US", { timeZone: "Asia/Manila" }));
   ph.setDate(ph.getDate() - ph.getDay()); // Subtract current weekday index to shift back to Sunday
   return getPHDateString(ph);
 }
@@ -94,10 +103,35 @@ export function QuestProvider({ children }) {
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [initializing, setInitializing] = useState(false);
+  const [timeSynced, setTimeSynced] = useState(false);
   const { currentUser, userProfile, isAdmin } = useAuth();
   const { expenses } = useExpenses();
   const templateMigrationDone = useRef(false);
   const questMigrationDone = useRef(false);
+
+  // Effect: Sync true time from worldtimeapi on mount to patch the Time Travel exploit
+  useEffect(() => {
+    let isMounted = true;
+    async function syncTime() {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2000); // 2s timeout
+        const res = await fetch("https://worldtimeapi.org/api/timezone/Asia/Manila", { signal: controller.signal });
+        clearTimeout(timeoutId);
+        
+        if (res.ok) {
+          const data = await res.json();
+          const trueTime = new Date(data.utc_datetime).getTime();
+          window.__TIME_OFFSET__ = trueTime - Date.now();
+        }
+      } catch (err) {
+        console.warn("[Anti-Cheat] Time sync failed, falling back to local clock.");
+      }
+      if (isMounted) setTimeSynced(true);
+    }
+    syncTime();
+    return () => { isMounted = false; };
+  }, []);
 
   // Effect: Subscribes in real-time to the admin-managed '/questTemplates' collection.
   // When the admin adds/edits/removes templates in the AdminDashboard, this keeps 'templates'
@@ -135,7 +169,7 @@ export function QuestProvider({ children }) {
   // Effect: Subscribes in real-time to the active user's quests.
   // Query filters the global 'quests' collection to matching UIDs: where("uid", "==", currentUser.uid)
   useEffect(() => {
-    if (!currentUser) {
+    if (!currentUser || !timeSynced) {
       setQuests([]);
       setLoading(true);
       return;
