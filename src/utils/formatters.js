@@ -25,7 +25,11 @@ export function groupExpensesByDate(expenses) {
 }
 
 export function getTodayString() {
-  return new Date().toISOString().split("T")[0];
+  const ph = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Manila" }));
+  const y = ph.getFullYear();
+  const m = String(ph.getMonth() + 1).padStart(2, "0");
+  const d = String(ph.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 }
 
 export function sumExpenses(expenses) {
