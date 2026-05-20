@@ -6,7 +6,7 @@ import {
   onAuthStateChanged,
   updateProfile,
 } from "firebase/auth";
-import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, getDoc, serverTimestamp, onSnapshot } from "firebase/firestore";
 import { auth, db } from "../firebase/firebase";
 
 // AuthContext: Holds the global session state and profile document of the logged-in user.
@@ -55,21 +55,39 @@ export function AuthProvider({ children }) {
   }
 
   // Effect: Attaches a Firebase Auth listener to track session changes (login, logout, refresh).
-  // Wrapped in try-catch-finally to guarantee the page stops showing a black loading screen 
-  // even if network or Firestore errors occur during startup.
+  // Also attaches a real-time listener to the user's profile document in Firestore to ensure
+  // real-time syncing of streaks, points, and budgets.
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (user) => {
+    let profileUnsub = null;
+    const authUnsub = onAuthStateChanged(auth, async (user) => {
       try {
         setCurrentUser(user);
-        if (user) await fetchUserProfile(user.uid);
-        else setUserProfile(null);
+        if (user) {
+          // Set up real-time listener for the user's profile document
+          profileUnsub = onSnapshot(doc(db, "users", user.uid), (snap) => {
+            if (snap.exists()) {
+              setUserProfile(snap.data());
+            }
+          }, (err) => {
+            console.error("AuthContext: Failed to fetch user profile real-time.", err);
+          });
+        } else {
+          setUserProfile(null);
+          if (profileUnsub) {
+            profileUnsub();
+            profileUnsub = null;
+          }
+        }
       } catch (err) {
         console.error("Auth initialization error:", err);
       } finally {
         setLoading(false);
       }
     });
-    return unsub;
+    return () => {
+      authUnsub();
+      if (profileUnsub) profileUnsub();
+    };
   }, []);
 
   const value = {
