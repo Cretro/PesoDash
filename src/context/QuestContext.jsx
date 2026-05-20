@@ -540,18 +540,34 @@ export function QuestProvider({ children }) {
               totalPoints: increment(quest.pointsReward * milestonesHit),
               currentStreak: currentStreak,
             });
+            // Log each milestone hit into completionHistory so the Completed tab shows it
+            const milestoneEntries = [];
+            for (let m = 1; m <= milestonesHit; m++) {
+              milestoneEntries.push({
+                completedAt: todayStr,
+                streak: currentStreak,
+                milestone: m,
+              });
+            }
+            // Save audit snapshot with milestone history
+            await updateDoc(doc(db, "quests", quest.id), {
+              lastResetDate: todayStr,
+              progress: currentStreak,
+              completed: true,
+              timesCompleted: (quest.timesCompleted || 0) + milestonesHit,
+              completionHistory: arrayUnion(...milestoneEntries),
+            });
           } else {
             await updateDoc(doc(db, "users", currentUser.uid), {
               currentStreak: currentStreak,
             });
+            // Save audit snapshot without milestone
+            await updateDoc(doc(db, "quests", quest.id), {
+              lastResetDate: todayStr,
+              progress: currentStreak,
+              completed: false,
+            });
           }
-
-          // Save audit snapshot
-          await updateDoc(doc(db, "quests", quest.id), {
-            lastResetDate: todayStr,
-            progress: currentStreak,
-            completed: milestonesHit > 0,
-          });
         }
         continue; // Streaks do not use standard daily/weekly reset pathways below
       }
