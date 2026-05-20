@@ -46,17 +46,23 @@ export default function Analytics() {
 
   // useMemo: Reconstructs a sliding 30-day index of dates (day-by-day).
   // Maps expenses to each day to build coordinates for the Line Chart.
+  // Uses PH timezone to match expense date format stored in Firestore.
   const trendData = useMemo(() => {
     const days = [];
     for (let i = 29; i >= 0; i--) {
       const d = new Date(); 
       d.setDate(d.getDate() - i);
-      const ds = d.toISOString().split("T")[0]; // Matches YYYY-MM-DD pattern
+      // Use local PH date string to match how expenses store dates
+      const ph = new Date(d.toLocaleString("en-US", { timeZone: "Asia/Manila" }));
+      const y = ph.getFullYear();
+      const m = String(ph.getMonth() + 1).padStart(2, "0");
+      const day = String(ph.getDate()).padStart(2, "0");
+      const ds = `${y}-${m}-${day}`;
       const total = expenses
         .filter((e) => e.date === ds)
         .reduce((sum, e) => sum + Number(e.amount), 0);
       days.push({ 
-        date: d.toLocaleDateString("en-PH", { month: "short", day: "numeric" }), 
+        date: ph.toLocaleDateString("en-PH", { month: "short", day: "numeric" }), 
         amount: total 
       });
     }
@@ -86,7 +92,7 @@ export default function Analytics() {
       return { 
         category: cat.split(" ")[0], // Truncates labels for mobile layout alignment
         actual, 
-        budget: dailyBudget * 4 // Mock aggregate comparison limits
+        budget: dailyBudget * 7 // Weekly aggregate budget per category
       };
     });
   }, [expenses, dailyBudget]);

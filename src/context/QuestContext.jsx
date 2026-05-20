@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useRef } from "react";
 import {
   collection,
   query,
@@ -96,6 +96,8 @@ export function QuestProvider({ children }) {
   const [initializing, setInitializing] = useState(false);
   const { currentUser, userProfile, isAdmin } = useAuth();
   const { expenses } = useExpenses();
+  const templateMigrationDone = useRef(false);
+  const questMigrationDone = useRef(false);
 
   // Effect: Subscribes in real-time to the admin-managed '/questTemplates' collection.
   // When the admin adds/edits/removes templates in the AdminDashboard, this keeps 'templates'
@@ -104,17 +106,20 @@ export function QuestProvider({ children }) {
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "questTemplates"), (snap) => {
       if (!snap.empty) {
-        // Run migration: clean up deprecated targetType if present
-        snap.docs.forEach(async (d) => {
-          if (d.data().hasOwnProperty("targetType")) {
-            const data = d.data();
-            const qType = data.targetType || data.questType || "streak";
-            await updateDoc(doc(db, "questTemplates", d.id), {
-              questType: qType,
-              targetType: deleteField(),
-            });
-          }
-        });
+        // Run migration once: clean up deprecated targetType if present
+        if (!templateMigrationDone.current) {
+          templateMigrationDone.current = true;
+          snap.docs.forEach(async (d) => {
+            if (d.data().hasOwnProperty("targetType")) {
+              const data = d.data();
+              const qType = data.targetType || data.questType || "streak";
+              await updateDoc(doc(db, "questTemplates", d.id), {
+                questType: qType,
+                targetType: deleteField(),
+              });
+            }
+          });
+        }
         setTemplates(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
       } else {
         // No admin templates configured yet, use the hardcoded defaults
@@ -140,17 +145,20 @@ export function QuestProvider({ children }) {
       where("uid", "==", currentUser.uid)
     );
     const unsub = onSnapshot(q, (snap) => {
-      // Run migration: clean up deprecated targetType if present
-      snap.docs.forEach(async (d) => {
-        if (d.data().hasOwnProperty("targetType")) {
-          const data = d.data();
-          const qType = data.targetType || data.questType || "streak";
-          await updateDoc(doc(db, "quests", d.id), {
-            questType: qType,
-            targetType: deleteField(),
-          });
-        }
-      });
+      // Run migration once: clean up deprecated targetType if present
+      if (!questMigrationDone.current) {
+        questMigrationDone.current = true;
+        snap.docs.forEach(async (d) => {
+          if (d.data().hasOwnProperty("targetType")) {
+            const data = d.data();
+            const qType = data.targetType || data.questType || "streak";
+            await updateDoc(doc(db, "quests", d.id), {
+              questType: qType,
+              targetType: deleteField(),
+            });
+          }
+        });
+      }
       const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       setQuests(data);
       setLoading(false);
