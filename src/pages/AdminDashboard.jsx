@@ -17,31 +17,40 @@ import { FiUsers, FiAward, FiPieChart, FiSearch, FiEdit2, FiTrash2, FiPlus, FiX 
 
 const CATEGORIES = ["Food", "Commute", "School Expenses", "Others"];
 
+/**
+ * AdminDashboard Component
+ * 
+ * Purpose: Provides administrators with live platform control tools.
+ * Key Sections:
+ *  1. **Users Management**: View all users, search, and edit records (budgets, point values, disable status).
+ *  2. **Quest Templates**: Perform CRUD operations on quest rules that populate standard user dashboards.
+ *  3. **Platform Stats**: Real-time business intelligence aggregates (averages, category progress bars, volume sums).
+ */
 export default function AdminDashboard() {
   const { currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState("users");
 
-  // Collections Data States
+  // --- Real-time Collections Data States ---
   const [users, setUsers] = useState([]);
   const [templates, setTemplates] = useState([]);
   const [expenses, setExpenses] = useState([]);
 
-  // Loadings
+  // --- Loading States ---
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [loadingTemplates, setLoadingTemplates] = useState(true);
   const [loadingExpenses, setLoadingExpenses] = useState(true);
 
-  // Search & Modals State
+  // --- Search & Modal States ---
   const [searchQuery, setSearchQuery] = useState("");
   const [editingUser, setEditingUser] = useState(null);
   const [editingTemplate, setEditingTemplate] = useState(null);
   const [showAddTemplate, setShowAddTemplate] = useState(false);
 
-  // Messages
+  // --- Notifications Banner States ---
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
 
-  // Add/Edit Template forms
+  // --- Add/Edit Quest Template Form State ---
   const [templateForm, setTemplateForm] = useState({
     questType: "streak",
     targetType: "streak",
@@ -54,7 +63,8 @@ export default function AdminDashboard() {
     category: "",
   });
 
-  // Listen to Users
+  // Effect: Sets up real-time listener to the global '/users' collection.
+  // Triggers state refresh instantly when users sign up or update profiles.
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "users"), (snap) => {
       setUsers(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
@@ -63,7 +73,8 @@ export default function AdminDashboard() {
     return unsub;
   }, []);
 
-  // Listen to Quest Templates
+  // Effect: Sets up real-time listener to the global '/questTemplates' collection.
+  // Keeps the admin list and user active sync templates aligned.
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "questTemplates"), (snap) => {
       setTemplates(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
@@ -72,7 +83,8 @@ export default function AdminDashboard() {
     return unsub;
   }, []);
 
-  // Listen to Expenses
+  // Effect: Sets up real-time listener to the global '/expenses' collection.
+  // Used to aggregate platform-wide spending stats in the Stats panel.
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "expenses"), (snap) => {
       setExpenses(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
@@ -81,7 +93,7 @@ export default function AdminDashboard() {
     return unsub;
   }, []);
 
-  // Show status banner temporarily
+  // Helper: Triggers a temporary alert banner that fades out automatically.
   const triggerStatus = (text, type = "success") => {
     if (type === "success") {
       setSuccessMsg(text);
@@ -95,6 +107,7 @@ export default function AdminDashboard() {
   };
 
   // --- User Administration Actions ---
+  // Submits updates to a specific user's Firestore document.
   async function handleUpdateUser(e) {
     e.preventDefault();
     if (!editingUser) return;
@@ -106,7 +119,7 @@ export default function AdminDashboard() {
         currentStreak: Number(editingUser.currentStreak),
         dailyBudget: Number(editingUser.dailyBudget),
         role: editingUser.role || null,
-        disabled: editingUser.disabled || false,
+        disabled: editingUser.disabled || false, // Toggling this disables the user's Auth login route
       });
       triggerStatus(`User ${editingUser.displayName} updated successfully!`);
       setEditingUser(null);
@@ -116,6 +129,7 @@ export default function AdminDashboard() {
   }
 
   // --- Quest Template Actions ---
+  // Saves or updates a quest template rule in '/questTemplates' collection.
   async function handleSaveTemplate(e) {
     e.preventDefault();
     const { title, description, target, pointsReward, icon, questType, targetType, period, category } = templateForm;
@@ -135,15 +149,18 @@ export default function AdminDashboard() {
         target: Number(target),
         pointsReward: Number(pointsReward),
         icon: icon.trim(),
+        // Category constraint is only saved if the selected quest type actually uses it.
         category: ["days_under_category_limit", "total_spend_limit", "zero_splurge_days", "category"].includes(qType) ? (category || "Others") : null,
       };
 
       if (editingTemplate) {
+        // Edit mode: update existing Firestore document
         await updateDoc(doc(db, "questTemplates", editingTemplate.id), payload);
         triggerStatus("Quest template updated successfully!");
         setEditingTemplate(null);
         setShowAddTemplate(false);
       } else {
+        // Create mode: add new Firestore document
         await addDoc(collection(db, "questTemplates"), {
           ...payload,
           createdAt: serverTimestamp(),
@@ -152,7 +169,7 @@ export default function AdminDashboard() {
         setShowAddTemplate(false);
       }
 
-      // Reset form
+      // Reset form controls
       setTemplateForm({
         questType: "streak",
         targetType: "streak",
@@ -169,6 +186,7 @@ export default function AdminDashboard() {
     }
   }
 
+  // Deletes a quest template document from Firestore.
   async function handleDeleteTemplate(id) {
     if (!window.confirm("Are you sure you want to delete this quest template? This won't remove active quests user-side but prevents new ones.")) return;
     try {
@@ -179,15 +197,19 @@ export default function AdminDashboard() {
     }
   }
 
-  // --- Filters & Aggregates ---
+  // --- Optimization: useMemo Hook ---
+  // Memoizes the search/filter results so that typing in the search bar does not trigger 
+  // unnecessary array allocations unless the search query or users array changes.
   const filteredUsers = useMemo(() => {
     return users.filter(
       (u) =>
-        u.displayName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        u.email?.toLowerCase().includes(searchQuery.toLowerCase())
+          u.displayName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          u.email?.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [users, searchQuery]);
 
+  // Memoizes Platform aggregates to prevent heavy computations (looping through all users/expenses) 
+  // on every render cycle.
   const stats = useMemo(() => {
     const totalUsers = users.length;
     const totalTransactions = expenses.length;
@@ -197,7 +219,7 @@ export default function AdminDashboard() {
       : 300;
     const totalPoints = users.reduce((sum, u) => sum + (u.totalPoints || 0), 0);
 
-    // Categories breakdown
+    // Sum spending aggregates per category
     const categoryTotals = expenses.reduce((acc, curr) => {
       const cat = curr.category || "Others";
       acc[cat] = (acc[cat] || 0) + Number(curr.amount);
@@ -207,6 +229,7 @@ export default function AdminDashboard() {
     return { totalUsers, totalTransactions, totalMoneySpent, averageBudget, totalPoints, categoryTotals };
   }, [users, expenses]);
 
+  // Utility: Auto-generates descriptions dynamically based on input targets and types.
   const suggestedDescription = useMemo(() => {
     const target = templateForm.target || "X";
     const category = templateForm.category || "[Category]";
@@ -229,7 +252,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="page-content" style={{ maxWidth: 960 }}>
-      {/* Messages */}
+      {/* Alert Notifications banner */}
       <AnimatePresence>
         {successMsg && (
           <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="alert alert-success py-2.5 small mb-3 text-center">
@@ -243,7 +266,7 @@ export default function AdminDashboard() {
         )}
       </AnimatePresence>
 
-      {/* Tabs */}
+      {/* Navigation tabs */}
       <ul className="nav nav-pills nav-fill mb-4 p-1 rounded-3" style={{ background: "rgba(255,255,255,.04)" }}>
         {[
           ["users", <><FiUsers className="me-2" />Users</>],
@@ -270,6 +293,7 @@ export default function AdminDashboard() {
         {/* --- USERS PANEL --- */}
         {activeTab === "users" && (
           <div className="panel-container">
+            {/* Search Input */}
             <div className="d-flex align-items-center gap-2 mb-3 bg-white bg-opacity-5 border border-white border-opacity-10 rounded-3 px-3 py-2">
               <FiSearch className="text-secondary" />
               <input
@@ -500,7 +524,7 @@ export default function AdminDashboard() {
               <div className="text-center py-5 text-secondary">Analyzing platform aggregates...</div>
             ) : (
               <div className="d-flex flex-column gap-4">
-                {/* Scorecards */}
+                {/* Statistics Scorecards */}
                 <div className="row g-3">
                   {[
                     { label: "Total Users", value: stats.totalUsers, color: "#818cf8" },
@@ -558,7 +582,7 @@ export default function AdminDashboard() {
                     </div>
                   </div>
 
-                  {/* Top Platform users */}
+                  {/* Averages Panel */}
                   <div className="col-12 col-lg-5">
                     <div className="card rounded-3 glass-card h-100">
                       <div className="card-body p-3">
@@ -620,7 +644,7 @@ export default function AdminDashboard() {
                 <div className="d-flex align-items-center justify-content-between mb-3.5">
                   <h3 className="fs-5 fw-bold text-white mb-0">Edit User Profile</h3>
                   <button className="btn btn-outline-secondary border-0 p-1" onClick={() => setEditingUser(null)}>
-                    <FiX size={18} />
+                     <FiX size={18} />
                   </button>
                 </div>
 
@@ -759,7 +783,12 @@ export default function AdminDashboard() {
                       <label className="form-label text-uppercase small fw-semibold text-secondary mb-1">Quest Type</label>
                       <select
                         value={templateForm.targetType || templateForm.questType}
-                        onChange={(e) => setTemplateForm({ ...templateForm, targetType: e.target.value, questType: e.target.value })}
+                        onChange={(e) => {
+                          const newType = e.target.value;
+                          // Auto-lock target to 1 when daily streak or daily zero_splurge is selected
+                          const isLockedTarget = ["streak", "zero_splurge_days"].includes(newType) && (templateForm.period || "weekly") === "daily";
+                          setTemplateForm({ ...templateForm, targetType: newType, questType: newType, target: isLockedTarget ? 1 : templateForm.target });
+                        }}
                         className="form-select text-white bg-dark border-secondary"
                       >
                         <option value="streak">Budget Streak (Days)</option>
@@ -770,12 +799,12 @@ export default function AdminDashboard() {
                     </div>
                   </div>
 
-                  {/* Informational Help Alert for selected type and period */}
+                  {/* Informational Help Alert describing types & constraints dynamically */}
                   <div className="alert bg-white bg-opacity-5 border border-white border-opacity-10 py-2.5 px-3 small text-secondary mb-0 rounded-3">
                     {templateForm.period === "daily" ? (
                       <>
                         {(templateForm.targetType || templateForm.questType) === "streak" && (
-                          <span>🎯 <strong>Daily streak</strong>: Checks if daily total spending today is within daily budget. Target is always 1 day. (To track consecutive days, change Period to **Weekly**).</span>
+                          <span>🎯 <strong>Daily streak</strong>: Checks if daily total spending today is within daily budget. Target is always 1 day.</span>
                         )}
                         {(templateForm.targetType || templateForm.questType) === "total_spend_limit" && (
                           <span>🎯 <strong>Daily spend limit</strong>: Keeps today's spending in category under target limit. Resets daily. Target is cash limit in pesos (e.g. 150).</span>
@@ -810,7 +839,12 @@ export default function AdminDashboard() {
                       <label className="form-label text-uppercase small fw-semibold text-secondary mb-1">Quest Period</label>
                       <select
                         value={templateForm.period || "weekly"}
-                        onChange={(e) => setTemplateForm({ ...templateForm, period: e.target.value })}
+                        onChange={(e) => {
+                          const newPeriod = e.target.value;
+                          // Auto-lock target to 1 when switching to daily streak or daily zero_splurge mode
+                          const isLockedTarget = ["streak", "zero_splurge_days"].includes(templateForm.targetType || templateForm.questType) && newPeriod === "daily";
+                          setTemplateForm({ ...templateForm, period: newPeriod, target: isLockedTarget ? 1 : templateForm.target });
+                        }}
                         className="form-select text-white bg-dark border-secondary"
                       >
                         <option value="weekly">Weekly Reset</option>
@@ -818,8 +852,6 @@ export default function AdminDashboard() {
                       </select>
                     </div>
                   </div>
-
-
 
                   <div>
                     <label className="form-label text-uppercase small fw-semibold text-secondary mb-1">Title</label>
@@ -872,6 +904,9 @@ export default function AdminDashboard() {
                         value={templateForm.target}
                         onChange={(e) => setTemplateForm({ ...templateForm, target: e.target.value })}
                         className="form-control text-white bg-dark border-secondary"
+                        // Lock to 1 for daily streak/zero_splurge — the engine hardcodes progress as 0 or 1 for these, making any other value impossible to reach
+                        readOnly={["streak", "zero_splurge_days"].includes(templateForm.targetType || templateForm.questType) && templateForm.period === "daily"}
+                        style={["streak", "zero_splurge_days"].includes(templateForm.targetType || templateForm.questType) && templateForm.period === "daily" ? { opacity: 0.5, cursor: "not-allowed" } : {}}
                       />
                     </div>
                     <div className="col-6">

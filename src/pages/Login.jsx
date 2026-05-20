@@ -3,28 +3,54 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
 
+/**
+ * Login Page Component
+ * 
+ * Purpose: Authenticates existing platform users.
+ * Key Logic points:
+ *  - **Location State Capture**: Checks `useLocation().state` to see if the user was kicked out 
+ *    by the `ProtectedRoute` because their account is disabled, showing a custom warning banner.
+ *  - **Form Validation**: Simple client-side error checking prior to initiating network queries.
+ *  - **Auth Integration**: Delegates login process to the Firebase Auth wrapper in `AuthContext`.
+ */
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
+  const location = useLocation(); // Hook used to inspect router history metadata
+  
+  // Local States
   const [form, setForm]     = useState({ email: "", password: "" });
   const [error, setError]   = useState("");
   const [loading, setLoading] = useState(false);
 
+  // Captures the 'disabledError' state passed during redirection inside ProtectedRoute.jsx
   const disabledError = location.state?.disabledError;
 
-  function handleChange(e) { setForm({ ...form, [e.target.name]: e.target.value }); setError(""); }
+  // Generic Change Handler: Dynamically sets state key based on input field "name" attribute.
+  function handleChange(e) { 
+    setForm({ ...form, [e.target.name]: e.target.value }); 
+    setError(""); 
+  }
 
+  // Form submission handler
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!form.email || !form.password) { setError("Please fill in all fields."); return; }
+    if (!form.email || !form.password) { 
+      setError("Please fill in all fields."); 
+      return; 
+    }
+    
     setLoading(true);
     try {
+      // Calls the global Firebase Auth login method
       await login(form.email, form.password);
+      // On success, redirect to dashboard landing page
       navigate("/dashboard");
     } catch {
       setError("Invalid email or password.");
-    } finally { setLoading(false); }
+    } finally { 
+      setLoading(false); 
+    }
   }
 
   return (
@@ -38,6 +64,7 @@ export default function Login() {
               <p className="text-secondary small">Sign in to continue your journey</p>
             </div>
 
+            {/* Account Suspended Notice: Shown only if disabledError is present in history state */}
             {disabledError && (
               <div className="alert alert-warning py-2.5 small mb-3 text-center border-warning border-opacity-25" style={{ background: "rgba(245,158,11,.15)", color: "#fbbf24" }}>
                 🔒 This account has been disabled/archived by an administrator.

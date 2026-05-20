@@ -9,6 +9,7 @@ import {
 import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "../firebase/firebase";
 
+// AuthContext: Holds the global session state and profile document of the logged-in user.
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
@@ -16,6 +17,13 @@ export function AuthProvider({ children }) {
   const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  /** 
+   * Registers a new user:
+   *  1. Creates user in Firebase Authentication.
+   *  2. Updates their profile displayName.
+   *  3. Creates a corresponding document in the `/users` Firestore collection to store metadata 
+   *     (daily budget, points, streaks) that Firebase Auth doesn't support by default.
+   */
   async function register(email, password, displayName) {
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(cred.user, { displayName });
@@ -30,19 +38,25 @@ export function AuthProvider({ children }) {
     return cred;
   }
 
+  // Logs the user in using Firebase Authentication
   function login(email, password) {
     return signInWithEmailAndPassword(auth, email, password);
   }
 
+  // Logs the user out of the Firebase session
   function logout() {
     return signOut(auth);
   }
 
+  // Fetches custom user profile details from Firestore using their unique UID
   async function fetchUserProfile(uid) {
     const snap = await getDoc(doc(db, "users", uid));
     if (snap.exists()) setUserProfile(snap.data());
   }
 
+  // Effect: Attaches a Firebase Auth listener to track session changes (login, logout, refresh).
+  // Wrapped in try-catch-finally to guarantee the page stops showing a black loading screen 
+  // even if network or Firestore errors occur during startup.
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
       try {
@@ -62,7 +76,7 @@ export function AuthProvider({ children }) {
     currentUser,
     userProfile,
     setUserProfile,
-    isAdmin: userProfile?.role === "admin",
+    isAdmin: userProfile?.role === "admin", // Exposes boolean helper for admin route guard validation
     register,
     login,
     logout,
@@ -76,6 +90,7 @@ export function AuthProvider({ children }) {
   );
 }
 
+// useAuth Hook: Quick-access hook for components to consume user auth states
 export function useAuth() {
   return useContext(AuthContext);
 }

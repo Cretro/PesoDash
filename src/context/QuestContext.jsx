@@ -15,8 +15,11 @@ import { db } from "../firebase/firebase";
 import { useAuth } from "./AuthContext";
 import { useExpenses } from "./ExpenseContext";
 
+// QuestContext: Manages active quests, user point awards, daily and weekly reset audit cycles.
 const QuestContext = createContext(null);
 
+// QUEST_TEMPLATES: Hardcoded definitions representing the core system quests.
+// If a user has no active quests in Firestore, the system seeds document instances using these templates.
 const QUEST_TEMPLATES = [
   {
     questType: "streak",
@@ -46,7 +49,10 @@ const QUEST_TEMPLATES = [
   },
 ];
 
-/** Returns a "YYYY-MM-DD" string for the current date in Philippine Time */
+/** 
+ * Helper: Returns a "YYYY-MM-DD" date string in Philippine Standard Time (PST).
+ * Used for consistency across different users, preventing local timezone skew bugs.
+ */
 function getPHDateString(date = new Date()) {
   const ph = new Date(date.toLocaleString("en-US", { timeZone: "Asia/Manila" }));
   const y = ph.getFullYear();
@@ -55,14 +61,20 @@ function getPHDateString(date = new Date()) {
   return `${y}-${m}-${d}`;
 }
 
-/** Returns the current week's Sunday as a "YYYY-MM-DD" string in Philippine Time */
+/** 
+ * Helper: Returns the start date (Sunday) of the current week in Philippine Standard Time.
+ * Used to identify when a weekly quest cycle starts and ends.
+ */
 function getCurrentWeekStart() {
   const ph = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Manila" }));
-  ph.setDate(ph.getDate() - ph.getDay()); // Sunday = start of week
+  ph.setDate(ph.getDate() - ph.getDay()); // Subtract current weekday index to shift back to Sunday
   return getPHDateString(ph);
 }
 
-/** Returns all dates in the current week (Sun–Sat) as "YYYY-MM-DD" strings in PH Time */
+/** 
+ * Helper: Returns all 7 dates (Sun to Sat) for the current week.
+ * Used to map expenses and daily targets across the current weekly cycle.
+ */
 function getCurrentWeekDates() {
   const weekStart = getCurrentWeekStart();
   const dates = [];
@@ -76,13 +88,34 @@ function getCurrentWeekDates() {
 
 export function QuestProvider({ children }) {
   const [quests, setQuests] = useState([]);
-  const [templates, setTemplates] = useState(QUEST_TEMPLATES);
+  // Start with empty array; populated from Firestore or hardcoded fallback below
+  const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [initializing, setInitializing] = useState(false);
   const { currentUser, userProfile, isAdmin } = useAuth();
   const { expenses } = useExpenses();
 
-  // Load and sync user quests from Firestore
+  // Effect: Subscribes in real-time to the admin-managed '/questTemplates' collection.
+  // When the admin adds/edits/removes templates in the AdminDashboard, this keeps 'templates'
+  // in sync so that newly registered users are seeded with the latest set of quests.
+  // Falls back to the hardcoded QUEST_TEMPLATES if the Firestore collection is still empty.
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, "questTemplates"), (snap) => {
+      if (!snap.empty) {
+        setTemplates(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      } else {
+        // No admin templates configured yet, use the hardcoded defaults
+        setTemplates(QUEST_TEMPLATES);
+      }
+    }, (err) => {
+      console.error("QuestContext: Failed to load questTemplates, using defaults.", err);
+      setTemplates(QUEST_TEMPLATES);
+    });
+    return unsub;
+  }, []);
+
+  // Effect: Subscribes in real-time to the active user's quests.
+  // Query filters the global 'quests' collection to matching UIDs: where("uid", "==", currentUser.uid)
   useEffect(() => {
     if (!currentUser) return;
     const q = query(
@@ -94,13 +127,13 @@ export function QuestProvider({ children }) {
       setQuests(data);
       setLoading(false);
 
-      // Auto-initialize if empty
+      // 1. Auto-seeding: If the snapshot is completely empty, initialize default quests for the user.
       if (snap.empty && !initializing) {
         initializeQuests();
       } else {
-        // Sync active quests with template updates (like period shifting)
+        // 2. Synchronization: Sync fields with templates (updates period changes, category constraints, etc.)
         syncQuestsWithTemplates(data);
-        // Check if any quests need a weekly reset
+        // 3. Reset Audit: Run midnight/weekly rollover checks and award points if criteria were met.
         checkAndResetQuests(data);
       }
     }, (err) => {
@@ -109,20 +142,23 @@ export function QuestProvider({ children }) {
     return unsub;
   }, [currentUser]);
 
-  /** Auto-track quest progress whenever expenses or quests change */
+  // Effect: Calculates and updates active quest progress whenever expenses log changes or quests shift.
   useEffect(() => {
     if (!quests.length) return;
     syncQuestProgress(quests, expenses);
   }, [expenses, quests.map((q) => q.id).join(",")]);
 
-  /** Calculates the correct progress for each active quest and writes it to Firestore */
+  /** 
+   * CORE ENGINE FUNCTION: syncQuestProgress
+   * Purpose: Tracks real-time user actions (expenses) and maps them to quest targets.
+   * Runs locally inside the React state loop, executing updates to Firestore documents.
+   */
   async function syncQuestProgress(questData, expenseData) {
-    const weekStart = getCurrentWeekStart();
     const weekDates = getCurrentWeekDates();
     const dailyBudget = userProfile?.dailyBudget || 300;
     const todayStr = getPHDateString();
 
-    // Only expenses logged this week
+    // Group expenses into current week (Sun–Sat) vs today only
     const weekExpenses = expenseData.filter((e) => weekDates.includes(e.date));
     const todayExpenses = expenseData.filter((e) => e.date === todayStr);
 
@@ -133,17 +169,16 @@ export function QuestProvider({ children }) {
       const qTarget = Number(quest.target || 0);
       const isDaily = quest.period === "daily";
 
-      // Only evaluate dates up to today for progress tracking
+      // Dates that have passed or are active in the current quest tracking range
       const activeDates = isDaily ? [todayStr] : weekDates.filter((d) => d <= todayStr);
       const activeExpenses = isDaily ? todayExpenses : weekExpenses;
 
+      // --- EVALUATION PATH 1: Streaks (Staying under daily budget limit) ---
       if (qType === "streak" || qType === "streak_under_budget") {
         if (isDaily) {
-          // Stay under budget today
           const todayTotal = todayExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
           newProgress = todayTotal <= dailyBudget ? 1 : 0;
         } else {
-          // Count consecutive days from Sunday up to TODAY where daily total <= dailyBudget
           let streak = 0;
           for (const date of activeDates) {
             const dayTotal = weekExpenses
@@ -152,12 +187,13 @@ export function QuestProvider({ children }) {
             if (dayTotal <= dailyBudget) {
               streak++;
             } else {
-              break; // Streak is broken
+              break; // Streak broken: consecutive chain terminates here
             }
           }
           newProgress = streak;
         }
 
+      // --- EVALUATION PATH 2: Category Limit Target Days ---
       } else if (qType === "days_under_category_limit") {
         let daysCount = 0;
         for (const date of activeDates) {
@@ -170,19 +206,18 @@ export function QuestProvider({ children }) {
         }
         newProgress = daysCount;
 
+      // --- EVALUATION PATH 3: Zero Splurge (E.g. Log ₱0 spent in Others) ---
       } else if (qType === "zero_splurge_days" || qType === "zero_splurge") {
         if (isDaily) {
-          // Daily zero splurge: 1 if they spent ₱0 on target category today; 0 if they spent > 0
           const catSpend = todayExpenses
             .filter((e) => e.category === (qCategory || "Others"))
             .reduce((sum, e) => sum + Number(e.amount), 0);
           newProgress = catSpend === 0 ? 1 : 0;
         } else {
-          // Weekly zero splurge: count days with logged activity and ₱0 in target category
           let zeroDays = 0;
           for (const date of activeDates) {
             const dayExpenses = activeExpenses.filter((e) => e.date === date);
-            if (dayExpenses.length === 0) continue;
+            if (dayExpenses.length === 0) continue; // Must log at least one expense on that day to count
             const catSpend = dayExpenses
               .filter((e) => e.category === (qCategory || "Others"))
               .reduce((sum, e) => sum + Number(e.amount), 0);
@@ -193,13 +228,14 @@ export function QuestProvider({ children }) {
           newProgress = quest.questType === "zero_splurge" ? (zeroDays > 0 ? 1 : 0) : zeroDays;
         }
 
+      // --- EVALUATION PATH 4: Total Spend Limits (Frugal Foodie: <= ₱1000 spend) ---
       } else if (qType === "category" || qType === "total_spend_limit") {
-        // Sum spending in category
         const totalSpent = activeExpenses
           .filter((e) => e.category === qCategory)
           .reduce((sum, e) => sum + Number(e.amount), 0);
         newProgress = totalSpent;
 
+      // --- EVALUATION PATH 5: Savings Goal (Budget remaining - spend) ---
       } else if (qType === "savings_goal") {
         if (isDaily) {
           const totalSpent = todayExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
@@ -211,19 +247,20 @@ export function QuestProvider({ children }) {
         }
       }
 
-      // Check completion status
+      // --- COMPLETION AUDIT (Immediate vs. Midnight Audit) ---
       let isCompleted = false;
       if (qType === "category" || qType === "total_spend_limit") {
-        // Evaluated only at reset
+        // Spend limits can only be completed when the week ends without overspending (audited at reset)
         isCompleted = false;
       } else if (isDaily) {
-        // Daily quests are only finalized at midnight, so they cannot be completed during the day
+        // Daily quests are completed only after midnight passes to avoid cheating (audited at reset)
         isCompleted = false;
       } else {
+        // Standard streak/savings quests complete instantly once threshold is reached
         isCompleted = newProgress >= qTarget;
       }
 
-      // Only write to Firestore if something actually changed
+      // Only write to database if the local calculated state differs from current Firestore values
       if (newProgress !== quest.progress || isCompleted !== quest.completed) {
         await updateDoc(doc(db, "quests", quest.id), {
           progress: newProgress,
@@ -233,7 +270,10 @@ export function QuestProvider({ children }) {
     }
   }
 
-  /** Syncs user's active quests with current admin template fields (for example, if period changed from weekly to daily) */
+  /** 
+   * UTILITY: syncQuestsWithTemplates
+   * Purpose: Syncs existing active user quests if the admin changes structural properties of templates.
+   */
   async function syncQuestsWithTemplates(questData) {
     if (!templates.length) return;
     for (const quest of questData) {
@@ -266,7 +306,13 @@ export function QuestProvider({ children }) {
     }
   }
 
-  /** Resets quests that belong to a previous week or day, checking total limit successes */
+  /** 
+   * CORE RESET ENGINE: checkAndResetQuests
+   * Purpose: Periodically audited on load. If the system time is past the target period boundary:
+   *  1. Evaluates success/failure of the quest.
+   *  2. If successful, increments 'timesCompleted', logs date into 'completionHistory', and awards points to the user document.
+   *  3. Resets quest progress back to 0 and updates the rollover dates ('lastResetDate' or 'weekStart').
+   */
   async function checkAndResetQuests(questData) {
     const currentWeek = getCurrentWeekStart();
     const todayStr = getPHDateString();
@@ -274,9 +320,11 @@ export function QuestProvider({ children }) {
     for (const quest of questData) {
       const isDaily = quest.period === "daily";
 
+      // --- Rollover Branch A: DAILY QUESTS ---
       if (isDaily) {
-        // Daily quest reset: if lastResetDate is in the past (before today)
         const lastReset = quest.lastResetDate || getPHDateString(new Date(Date.now() - 86400000));
+        
+        // If lastResetDate is in the past (midnight has passed since last check)
         if (lastReset < todayStr) {
           const updatePayload = {
             lastResetDate: todayStr,
@@ -287,25 +335,21 @@ export function QuestProvider({ children }) {
           const qType = quest.targetType || quest.questType || "streak";
           const qTarget = Number(quest.target || 0);
 
-          // Audit success at the end of the day
+          // Audit success criteria at midnight
           let wasSuccessful = false;
           if (qType === "category" || qType === "total_spend_limit") {
-            if (quest.progress <= qTarget) {
-              wasSuccessful = true;
-            }
+            if (quest.progress <= qTarget) wasSuccessful = true;
           } else {
-            if (quest.progress >= qTarget) {
-              wasSuccessful = true;
-            }
+            if (quest.progress >= qTarget) wasSuccessful = true;
           }
 
+          // If successful, log the event and credit points to the user profile
           if (wasSuccessful) {
             updatePayload.timesCompleted = (quest.timesCompleted || 0) + 1;
             updatePayload.completionHistory = arrayUnion({
               date: lastReset,
               completedAt: todayStr,
             });
-            // Award the points when successfully finishing the daily period
             await updateDoc(doc(db, "users", currentUser.uid), {
               totalPoints: increment(quest.pointsReward),
             });
@@ -313,8 +357,10 @@ export function QuestProvider({ children }) {
 
           await updateDoc(doc(db, "quests", quest.id), updatePayload);
         }
+
+      // --- Rollover Branch B: WEEKLY QUESTS ---
       } else {
-        // Weekly quest reset
+        // If weekStart is in the past (Sunday has passed since last check)
         if (quest.weekStart && quest.weekStart < currentWeek) {
           const updatePayload = {
             weekStart: currentWeek,
@@ -327,22 +373,18 @@ export function QuestProvider({ children }) {
 
           let wasSuccessful = quest.completed;
           if (qType === "category" || qType === "total_spend_limit") {
-            if (quest.progress <= qTarget) {
-              wasSuccessful = true;
-            }
+            if (quest.progress <= qTarget) wasSuccessful = true;
           } else {
-            if (quest.progress >= qTarget) {
-              wasSuccessful = true;
-            }
+            if (quest.progress >= qTarget) wasSuccessful = true;
           }
 
+          // If successful, log the event and credit points to the user profile
           if (wasSuccessful) {
             updatePayload.timesCompleted = (quest.timesCompleted || 0) + 1;
             updatePayload.completionHistory = arrayUnion({
               weekStart: quest.weekStart,
               completedAt: getPHDateString(),
             });
-            // Award the points when successfully finishing the weekly period
             await updateDoc(doc(db, "users", currentUser.uid), {
               totalPoints: increment(quest.pointsReward),
             });
@@ -354,6 +396,10 @@ export function QuestProvider({ children }) {
     }
   }
 
+  /** 
+   * INITIALIZER: initializeQuests
+   * Purpose: Seeds active quest documents for newly registered users.
+   */
   async function initializeQuests() {
     if (!currentUser || initializing || templates.length === 0) return;
     setInitializing(true);
@@ -361,6 +407,7 @@ export function QuestProvider({ children }) {
       const weekStartStr = getCurrentWeekStart();
       const todayStr = getPHDateString();
 
+      // Write template instances directly to '/quests' collection owned by the user's UID
       for (const template of templates) {
         await addDoc(collection(db, "quests"), {
           questType: template.questType || template.targetType || "streak",
@@ -387,6 +434,7 @@ export function QuestProvider({ children }) {
     }
   }
 
+  // Admin utility for updating quest progress directly (mainly used for tests/mock triggers)
   async function updateQuestProgress(questId, progress, completed = false) {
     await updateDoc(doc(db, "quests", questId), { progress, completed });
   }
@@ -400,6 +448,7 @@ export function QuestProvider({ children }) {
   );
 }
 
+// useQuests Hook: Consumer hook
 export function useQuests() {
   return useContext(QuestContext);
 }

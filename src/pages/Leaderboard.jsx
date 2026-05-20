@@ -7,6 +7,12 @@ import Avatar from "../components/Avatar";
 
 const MEDALS = ["🥇", "🥈", "🥉"];
 
+/**
+ * RankRow Component
+ * 
+ * Helper component rendering a single user row in the list.
+ * Highlights the row with a transparent indigo border/background if it's the current user.
+ */
 function RankRow({ user, rank, isMe }) {
   return (
     <li className={`list-group-item d-flex align-items-center gap-3 px-3 py-2 ${isMe ? "border-primary border-opacity-50" : ""}`}
@@ -26,12 +32,21 @@ function RankRow({ user, rank, isMe }) {
   );
 }
 
+/**
+ * Podium Component
+ * 
+ * Purpose: Displays the top 3 users visually like an Olympic medal podium.
+ * Presentation Detail: 
+ *  - A typical array sorted [1st, 2nd, 3rd] would render: Gold, Silver, Bronze left-to-right.
+ *  - To look like a real podium, we rearrange the order to: **[Silver (2nd), Gold (1st), Bronze (3rd)]**.
+ *  - We use CSS transforms to lift the Gold podium profile slightly higher.
+ */
 function Podium({ users }) {
   if (users.length < 3) return null;
-  const order = [users[1], users[0], users[2]]; // silver, gold, bronze
+  const order = [users[1], users[0], users[2]]; // Silver (index 1), Gold (index 0), Bronze (index 2)
   const ranks = [2, 1, 3];
-  const sizes = [44, 54, 40];
-  const colors = ["#64748b", "#f59e0b", "#b45309"];
+  const sizes = [44, 54, 40]; // Gold gets a larger avatar border
+  const colors = ["#64748b", "#f59e0b", "#b45309"]; // Silver, Gold, Bronze border hex colors
 
   return (
     <div className="card rounded-4 mb-3" style={{ background: "rgba(99,102,241,.06)", border: "1px solid rgba(99,102,241,.15)" }}>
@@ -53,6 +68,16 @@ function Podium({ users }) {
   );
 }
 
+/**
+ * Leaderboard Page Component
+ * 
+ * Purpose: Computes and displays rankings for the Global platform and direct friends.
+ * Key Features:
+ *  1. **Global Rank Listener**: Hooks directly into `/users` ordered by totalPoints, capped at 50.
+ *  2. **Friend Rank Loader**: Loads user profiles for all accepted friends in parallel.
+ *  3. **Self-Focus Guard**: If the current user is not in the Top 10, a pinned row is rendered 
+ *     at the bottom showing their rank so they don't get lost.
+ */
 export default function Leaderboard() {
   const { currentUser } = useAuth();
   const { accepted }    = useFriends();
@@ -61,7 +86,8 @@ export default function Leaderboard() {
   const [friendUsers, setFriendUsers] = useState([]);
   const [loading,  setLoading]  = useState(true);
 
-  // Global leaderboard — real-time
+  // Effect: Sets up a real-time listener to order users by totalPoints (descending).
+  // Limits total entries fetched to 50 for database query cost savings.
   useEffect(() => {
     const q = query(collection(db, "users"), orderBy("totalPoints", "desc"), limit(50));
     const unsub = onSnapshot(q, (snap) => {
@@ -71,15 +97,22 @@ export default function Leaderboard() {
     return unsub;
   }, []);
 
-  // Friends leaderboard — fetch each accepted friend's user doc
+  // Effect: Resolves Friend details.
+  // Friend documents only store ID strings. To show names and streaks, we must fetch
+  // full user documents from `/users`.
+  // We use Promise.all to trigger all fetches in parallel for maximum network efficiency.
   useEffect(() => {
     if (!currentUser || accepted.length === 0) { setFriendUsers([]); return; }
     const fetchAll = async () => {
+      // Map friend UIDs into async getDoc promises, then resolve them simultaneously.
       const docs = await Promise.all(
         accepted.map((f) => getDoc(doc(db, "users", f.friendUid)))
       );
+      
       const me = global.find((u) => u.id === currentUser.uid);
       const friends = docs.filter((d) => d.exists()).map((d) => ({ id: d.id, ...d.data() }));
+      
+      // Combine the current user + friends, sort them locally by points
       const combined = me ? [me, ...friends.filter((f) => f.id !== currentUser.uid)] : friends;
       setFriendUsers(combined.sort((a, b) => (b.totalPoints || 0) - (a.totalPoints || 0)));
     };
@@ -87,6 +120,7 @@ export default function Leaderboard() {
   }, [accepted, global, currentUser]);
 
   const list      = tab === "global" ? global : friendUsers;
+  // Locate index of current user to evaluate if they are in the top 10
   const myRank    = list.findIndex((u) => u.id === currentUser?.uid) + 1;
   const top10     = list.slice(0, 10);
   const isInTop10 = myRank > 0 && myRank <= 10;
@@ -97,7 +131,7 @@ export default function Leaderboard() {
   return (
     <div className="page-content" style={{ maxWidth: 720 }}>
 
-      {/* Tab switcher */}
+      {/* Tab Nav Selector */}
       <ul className="nav nav-pills nav-fill mb-3 p-1 rounded-3" style={{ background: "rgba(255,255,255,.04)" }}>
         {[["global", "🌐 Global"], ["friends", "👥 Friends"]].map(([key, label]) => (
           <li className="nav-item" key={key}>
@@ -109,7 +143,7 @@ export default function Leaderboard() {
         ))}
       </ul>
 
-      {/* Friends tab empty state */}
+      {/* Empty State for Friends */}
       {tab === "friends" && accepted.length === 0 && (
         <div className="card rounded-3 glass-card">
           <div className="card-body text-center py-5">
@@ -119,10 +153,10 @@ export default function Leaderboard() {
         </div>
       )}
 
-      {/* Podium */}
+      {/* Top 3 Podium Displays */}
       {list.length >= 3 && <Podium users={list} />}
 
-      {/* Rankings list */}
+      {/* Ranks list (Top 10 only) */}
       {list.length > 0 && (
         <ul className="list-group rounded-3 mb-2" style={{ overflow: "hidden" }}>
           {top10.map((user, i) => (
@@ -131,7 +165,7 @@ export default function Leaderboard() {
         </ul>
       )}
 
-      {/* Pinned "You" row if outside top 10 */}
+      {/* Pinned "You" row - Rendered at bottom if the user is outside the top 10 */}
       {!isInTop10 && myData && myRank > 0 && (
         <div className="mt-1" style={{ borderTop: "1px solid rgba(255,255,255,.06)" }}>
           <ul className="list-group rounded-3 mt-2" style={{ overflow: "hidden" }}>
@@ -140,6 +174,7 @@ export default function Leaderboard() {
         </div>
       )}
 
+      {/* Empty State for Global */}
       {list.length === 0 && tab === "global" && (
         <div className="card rounded-3 glass-card">
           <div className="card-body text-center py-5">

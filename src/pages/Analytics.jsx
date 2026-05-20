@@ -9,58 +9,99 @@ import { useAuth }     from "../context/AuthContext";
 import { fetchExchangeRates, CURRENCIES } from "../api/currencyApi";
 import { formatCurrency } from "../utils/formatters";
 
+// Themes & Palette settings
 const CAT_COLORS = { Food: "#6366f1", Commute: "#ec4899", "School Expenses": "#f59e0b", Others: "#10b981" };
 const CATS = ["Food", "Commute", "School Expenses", "Others"];
 const TT_STYLE = { background: "#1e293b", border: "1px solid rgba(255,255,255,.1)", borderRadius: ".75rem", color: "#f8fafc", fontSize: ".8rem" };
 
+/**
+ * Analytics Page Component
+ * 
+ * Purpose: Renders statistical spending diagrams using the Recharts library.
+ * Key Charts & Widgets:
+ *  1. **Line Chart**: Tracks 30-day historical transaction spending trends.
+ *  2. **Bar Chart**: Side-by-side comparison of budget vs actual spending per category.
+ *  3. **Pie Chart**: Visual distribution of monthly spending.
+ *  4. **Exchange Rates Widget**: Fetches real-time PHP conversion rates using Frankfurter public API.
+ */
 export default function Analytics() {
   const { expenses }    = useExpenses();
   const { userProfile } = useAuth();
+  
+  // Exchange Rate States
   const [rates, setRates] = useState(null);
   const [ratesDate, setRatesDate] = useState("");
   const [ratesError, setRatesError] = useState(false);
   const dailyBudget = userProfile?.dailyBudget || 300;
 
+  // Effect: Fetches external exchange rate values on mount.
   useEffect(() => {
     fetchExchangeRates()
-      .then(({ date, rates }) => { setRates(rates); setRatesDate(date); })
+      .then(({ date, rates }) => { 
+        setRates(rates); 
+        setRatesDate(date); 
+      })
       .catch(() => setRatesError(true));
   }, []);
 
+  // useMemo: Reconstructs a sliding 30-day index of dates (day-by-day).
+  // Maps expenses to each day to build coordinates for the Line Chart.
   const trendData = useMemo(() => {
     const days = [];
     for (let i = 29; i >= 0; i--) {
-      const d = new Date(); d.setDate(d.getDate() - i);
-      const ds = d.toISOString().split("T")[0];
-      const total = expenses.filter((e) => e.date === ds).reduce((s, e) => s + Number(e.amount), 0);
-      days.push({ date: d.toLocaleDateString("en-PH", { month: "short", day: "numeric" }), amount: total });
+      const d = new Date(); 
+      d.setDate(d.getDate() - i);
+      const ds = d.toISOString().split("T")[0]; // Matches YYYY-MM-DD pattern
+      const total = expenses
+        .filter((e) => e.date === ds)
+        .reduce((sum, e) => sum + Number(e.amount), 0);
+      days.push({ 
+        date: d.toLocaleDateString("en-PH", { month: "short", day: "numeric" }), 
+        amount: total 
+      });
     }
     return days;
   }, [expenses]);
 
+  // useMemo: Aggregates current month expenses per category for the Pie Chart.
   const pieData = useMemo(() => {
     const now = new Date();
-    const me = expenses.filter((e) => { const d = new Date(e.date); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); });
-    return CATS.map((cat) => ({ name: cat, value: me.filter((e) => e.category === cat).reduce((s, e) => s + Number(e.amount), 0) })).filter((d) => d.value > 0);
+    const currentMonthExpenses = expenses.filter((e) => { 
+      const d = new Date(e.date); 
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); 
+    });
+    return CATS.map((cat) => ({ 
+      name: cat, 
+      value: currentMonthExpenses.filter((e) => e.category === cat).reduce((sum, e) => sum + Number(e.amount), 0) 
+    })).filter((d) => d.value > 0); // Exclude empty categories to hide empty chart slices
   }, [expenses]);
 
+  // useMemo: Formats category actual spending vs daily limit rules for the Bar Chart.
   const barData = useMemo(() => {
     const now = new Date();
     return CATS.map((cat) => {
-      const actual = expenses.filter((e) => e.category === cat && new Date(e.date).getMonth() === now.getMonth()).reduce((s, e) => s + Number(e.amount), 0);
-      return { category: cat.split(" ")[0], actual, budget: dailyBudget * 4 };
+      const actual = expenses
+        .filter((e) => e.category === cat && new Date(e.date).getMonth() === now.getMonth())
+        .reduce((sum, e) => sum + Number(e.amount), 0);
+      return { 
+        category: cat.split(" ")[0], // Truncates labels for mobile layout alignment
+        actual, 
+        budget: dailyBudget * 4 // Mock aggregate comparison limits
+      };
     });
   }, [expenses, dailyBudget]);
 
-  const totalMonth = pieData.reduce((s, d) => s + d.value, 0);
+  const totalMonth = pieData.reduce((sum, d) => sum + d.value, 0);
 
   return (
     <div className="page-content">
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
         <div className="row g-4">
-          {/* Left Main Column: Big Charts */}
+          
+          {/* Left Main Column: Visual Performance Charts */}
           <div className="col-12 col-lg-8 order-2 order-lg-1">
-            {/* 30-Day Spending Trend */}
+            
+            {/* 30-Day Spending Trend Line Chart */}
             <div className="card rounded-3 glass-card mb-3">
               <div className="card-body">
                 <p className="fw-bold text-white small mb-3">30-Day Spending Trend</p>
@@ -75,7 +116,7 @@ export default function Analytics() {
               </div>
             </div>
 
-            {/* Budget vs Actual (Weekly) */}
+            {/* Budget vs Actual Side-by-Side Bar Chart */}
             <div className="card rounded-3 glass-card mb-3">
               <div className="card-body">
                 <p className="fw-bold text-white small mb-3">Budget vs Actual (Weekly)</p>
@@ -93,9 +134,10 @@ export default function Analytics() {
             </div>
           </div>
 
-          {/* Right Sidebar Column: Rates, Summaries, Pie Chart */}
+          {/* Right Sidebar: Key Metrics & Exchange Widgets */}
           <div className="col-12 col-lg-4 order-1 order-lg-2">
-            {/* Summary — Bootstrap grid */}
+            
+            {/* Quick Aggregate Indicators */}
             <div className="row g-2 mb-3">
               {[
                 { label: "This Month", value: formatCurrency(totalMonth) },
@@ -113,7 +155,7 @@ export default function Analytics() {
               ))}
             </div>
 
-            {/* This Month by Category */}
+            {/* Categorical Distribution Pie Chart */}
             <div className="card rounded-3 glass-card mb-3">
               <div className="card-body">
                 <p className="fw-bold text-white small mb-3">This Month by Category</p>
@@ -133,7 +175,7 @@ export default function Analytics() {
               </div>
             </div>
 
-            {/* Exchange Rate Widget — Frankfurter API */}
+            {/* Exchange Rate Converter API Widget */}
             <div className="card rounded-3 mb-3" style={{ background: "rgba(99,102,241,.08)", border: "1px solid rgba(99,102,241,.2)" }}>
               <div className="card-body py-3">
                 <div className="d-flex align-items-center justify-content-between mb-2">
