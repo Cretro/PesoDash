@@ -590,7 +590,6 @@ export function QuestProvider({ children }) {
       }
     }
   }
-  }
 
   /** 
    * initializeQuests (SEED SCRIPT)
