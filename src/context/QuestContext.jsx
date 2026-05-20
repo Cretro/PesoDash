@@ -6,6 +6,7 @@ import {
   onSnapshot,
   addDoc,
   updateDoc,
+  deleteDoc,
   doc,
   serverTimestamp,
   arrayUnion,
@@ -150,7 +151,7 @@ function calculatePastStreak(expenseData, dailyBudget, todayStr) {
     if (dayTotal <= dailyBudget) {
       streak++;
     } else {
-      break; 
+      break;
     }
 
     currentDate.setDate(currentDate.getDate() - 1); // Move back another day
@@ -173,6 +174,7 @@ export function QuestProvider({ children }) {
   // Refs to prevent infinite migration loops
   const templateMigrationDone = useRef(false);
   const questMigrationDone = useRef(false);
+  const initializingRef = useRef(false);
 
   // ==========================================
   // EFFECT 1: WORLD CLOCK API TIME SYNC
@@ -186,7 +188,7 @@ export function QuestProvider({ children }) {
         const timeoutId = setTimeout(() => controller.abort(), 2000); // 2s timeout limit
         const res = await fetch("https://worldtimeapi.org/api/timezone/Asia/Manila", { signal: controller.signal });
         clearTimeout(timeoutId);
-        
+
         if (res.ok) {
           const data = await res.json();
           const trueTime = new Date(data.utc_datetime).getTime();
@@ -248,6 +250,7 @@ export function QuestProvider({ children }) {
     if (!currentUser || !timeSynced) {
       setQuests([]);
       setLoading(true);
+      initializingRef.current = false;
       return;
     }
     const q = query(
@@ -287,7 +290,7 @@ export function QuestProvider({ children }) {
   // ==========================================
   // Seeds quest list from active templates if the user has no quest documents.
   useEffect(() => {
-    if (loading || !currentUser || initializing) return;
+    if (loading || !currentUser || initializing || initializingRef.current) return;
     if (quests.length === 0) {
       initializeQuests();
     }
@@ -595,7 +598,8 @@ export function QuestProvider({ children }) {
    * matching active admin templates.
    */
   async function initializeQuests() {
-    if (!currentUser || initializing || templates.length === 0) return;
+    if (!currentUser || initializingRef.current || templates.length === 0) return;
+    initializingRef.current = true;
     setInitializing(true);
     try {
       const weekStartStr = getCurrentWeekStart();
@@ -623,6 +627,42 @@ export function QuestProvider({ children }) {
       }
     } finally {
       setInitializing(false);
+    }
+  }
+
+  /**
+   * SELF-HEALING: deduplicateQuests
+   * Purpose: Checks if the user has duplicate quests (e.g. from rapid double-clicks/StrictMode triggers)
+   * and automatically removes duplicate Firestore documents, keeping the one with progress.
+   */
+  async function deduplicateQuests(questData) {
+    const seenTitles = new Set();
+    const duplicatesToDelete = [];
+
+    // Sort: prioritize keeping completed quests or quests with more progress
+    const sortedQuests = [...questData].sort((a, b) => {
+      if (a.completed && !b.completed) return -1;
+      if (!a.completed && b.completed) return 1;
+      return (b.progress || 0) - (a.progress || 0);
+    });
+
+    for (const quest of sortedQuests) {
+      if (seenTitles.has(quest.title)) {
+        duplicatesToDelete.push(quest.id);
+      } else {
+        seenTitles.add(quest.title);
+      }
+    }
+
+    if (duplicatesToDelete.length > 0) {
+      console.warn("[QuestContext] Self-healing: deleting duplicate quests", duplicatesToDelete);
+      for (const id of duplicatesToDelete) {
+        try {
+          await deleteDoc(doc(db, "quests", id));
+        } catch (err) {
+          console.error("Failed to delete duplicate quest:", id, err);
+        }
+      }
     }
   }
 

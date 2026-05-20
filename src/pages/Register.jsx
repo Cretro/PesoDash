@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
-import { useQuests } from "../context/QuestContext";
 
 /**
  * Register Page Component
@@ -16,11 +15,10 @@ import { useQuests } from "../context/QuestContext";
  */
 export default function Register() {
   const { register } = useAuth();
-  const { initializeQuests } = useQuests();
   const navigate = useNavigate();
 
   // Local Form States
-  const [form, setForm]     = useState({ displayName: "", email: "", password: "", confirm: "" });
+  const [form, setForm]     = useState({ displayName: "", email: "", password: "", confirm: "", gender: "prefer_not_to_say" });
   const [error, setError]   = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -51,12 +49,9 @@ export default function Register() {
     setLoading(true);
     try {
       // 1. Register with Firebase Auth (which creates the profile doc in Firestore via AuthContext)
-      await register(form.email, form.password, form.displayName.trim());
+      await register(form.email, form.password, form.displayName.trim(), form.gender);
       
-      // 2. Seed default active quests for the newly created user ID
-      await initializeQuests();
-      
-      // 3. Redirect to the main interface dashboard
+      // 2. Redirect to the main interface dashboard
       navigate("/dashboard");
     } catch (err) {
       setError(err.code === "auth/email-already-in-use" ? "Email already registered." : "Registration failed. Try again.");
@@ -90,6 +85,27 @@ export default function Register() {
                     placeholder={f.placeholder} className="form-control form-control-lg" autoComplete={f.ac} required />
                 </div>
               ))}
+
+              <div className="mb-3">
+                <label htmlFor="reg-gender" className="form-label text-uppercase small fw-semibold text-secondary">Gender (Optional)</label>
+                <select
+                  id="reg-gender"
+                  name="gender"
+                  value={form.gender}
+                  onChange={handleChange}
+                  className="form-select form-select-lg"
+                  style={{
+                    background: "rgba(255, 255, 255, 0.05)",
+                    border: "1px solid rgba(255, 255, 255, 0.15)",
+                    color: "#fff",
+                    borderRadius: "0.5rem",
+                  }}
+                >
+                  <option value="prefer_not_to_say" style={{ background: "#1e293b", color: "#fff" }}>Prefer not to say</option>
+                  <option value="female" style={{ background: "#1e293b", color: "#fff" }}>Female</option>
+                  <option value="male" style={{ background: "#1e293b", color: "#fff" }}>Male</option>
+                </select>
+              </div>
               <button type="submit" className="btn btn-primary w-100 fw-bold py-3 rounded-3 mt-1" disabled={loading} id="register-submit-btn" style={{ minHeight: 54 }}>
                 {loading ? "Creating account…" : "Create Account"}
               </button>

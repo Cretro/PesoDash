@@ -123,6 +123,7 @@ export default function AdminDashboard() {
         dailyBudget: Number(editingUser.dailyBudget),
         role: editingUser.role || null,
         disabled: editingUser.disabled || false, // Toggling this disables the user's Auth login route
+        gender: editingUser.gender || "prefer_not_to_say",
       });
       triggerStatus(`User ${editingUser.displayName} updated successfully!`);
       setEditingUser(null);
@@ -340,7 +341,7 @@ export default function AdminDashboard() {
                         <tr key={user.id}>
                           <td className="px-3 py-2.5">
                             <div className="d-flex align-items-center gap-2">
-                              <Avatar name={user.displayName || "User"} size={32} />
+                               <Avatar name={user.displayName || "User"} gender={user.gender} size={32} />
                               <span className="fw-semibold text-white small">{user.displayName || "Unregistered"}</span>
                             </div>
                           </td>
@@ -383,7 +384,7 @@ export default function AdminDashboard() {
                       <div className="card-body p-3">
                         <div className="d-flex align-items-center justify-content-between mb-2">
                           <div className="d-flex align-items-center gap-2">
-                            <Avatar name={user.displayName || "User"} size={36} />
+                            <Avatar name={user.displayName || "User"} gender={user.gender} size={36} />
                             <div>
                               <p className="fw-bold text-white mb-0 small">{user.displayName}</p>
                               <p className="text-secondary mb-0" style={{ fontSize: ".7rem" }}>{user.email}</p>
@@ -705,7 +706,7 @@ export default function AdminDashboard() {
                   </div>
 
                   <div className="row g-2">
-                    <div className="col-6">
+                    <div className="col-4">
                       <label className="form-label text-uppercase small fw-semibold text-secondary mb-1">System Role</label>
                       <select
                         value={editingUser.role || ""}
@@ -716,7 +717,7 @@ export default function AdminDashboard() {
                         <option value="admin">Admin</option>
                       </select>
                     </div>
-                    <div className="col-6">
+                    <div className="col-4">
                       <label className="form-label text-uppercase small fw-semibold text-secondary mb-1">Account Status</label>
                       <select
                         value={editingUser.disabled ? "disabled" : "active"}
@@ -724,7 +725,19 @@ export default function AdminDashboard() {
                         className="form-select"
                       >
                         <option value="active">Active</option>
-                        <option value="disabled">Archived (Disabled)</option>
+                        <option value="disabled">Archived</option>
+                      </select>
+                    </div>
+                    <div className="col-4">
+                      <label className="form-label text-uppercase small fw-semibold text-secondary mb-1">Gender</label>
+                      <select
+                        value={editingUser.gender || "prefer_not_to_say"}
+                        onChange={(e) => setEditingUser({ ...editingUser, gender: e.target.value })}
+                        className="form-select"
+                      >
+                        <option value="prefer_not_to_say">Neutral</option>
+                        <option value="female">Female</option>
+                        <option value="male">Male</option>
                       </select>
                     </div>
                   </div>

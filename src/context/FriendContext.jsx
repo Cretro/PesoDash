@@ -23,9 +23,8 @@ export function FriendProvider({ children }) {
 
   // loading: Indicates whether the initial Firestore onSnapshot subscription is still querying
   const [loading, setLoading] = useState(true);
-
   // currentUser: Session user utilized to dynamically build subcollection queries
-  const { currentUser } = useAuth();
+  const { currentUser, userProfile } = useAuth();
 
   /**
    * REAL-TIME FRIEND RELATIONSHIPS SYNC LISTENER
@@ -90,6 +89,7 @@ export function FriendProvider({ children }) {
       friendUid: target.uid,
       friendName: target.displayName,
       friendEmail: target.email,
+      friendGender: target.gender || "prefer_not_to_say",
     });
 
     // Write incoming item for the recipient
@@ -98,6 +98,7 @@ export function FriendProvider({ children }) {
       friendUid: currentUser.uid,
       friendName: currentUser.displayName,
       friendEmail: currentUser.email,
+      friendGender: userProfile?.gender || "prefer_not_to_say",
     });
   }
 
