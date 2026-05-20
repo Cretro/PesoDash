@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 
+// Landing page highlights describing primary features
 const features = [
   { icon: "📝", title: "Expense Logging",   desc: "Log spending in seconds with category tagging." },
   { icon: "🎮", title: "Saving Quests",     desc: "Complete missions, earn points by staying on budget." },
@@ -8,15 +9,26 @@ const features = [
   { icon: "📊", title: "Analytics",         desc: "Visualize spending trends and reach your goals." },
 ];
 
+/**
+ * Landing Page Component
+ * 
+ * Purpose: The public marketing landing page shown to unauthenticated visitors.
+ * Explains:
+ *  - Core value proposition (Gamified Budgeting).
+ *  - Alignment with United Nations Sustainable Development Goal (SDG) 8 (Decent Work and Economic Growth).
+ *  - Displays a mockup preview of the UI components.
+ */
 export default function Landing() {
   return (
     <div style={{ minHeight: "100vh", background: "linear-gradient(160deg,#0f172a 0%,#1a103d 50%,#0f172a 100%)", color: "#f8fafc" }}>
       <div className="container py-4 py-lg-5" style={{ maxWidth: 1000 }}>
-        {/* Hero */}
+        
+        {/* --- HERO SECTION --- */}
         <section className="px-3 pt-4 pb-5">
           <div className="row g-4 align-items-center">
             <div className="col-12 col-lg-7">
               <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+                {/* SDG Tagline */}
                 <span className="badge rounded-pill mb-3" style={{ background: "rgba(99,102,241,.2)", color: "#818cf8", border: "1px solid rgba(99,102,241,.4)", fontSize: ".75rem" }}>
                   SDG 8 · Decent Work &amp; Economic Growth
                 </span>
@@ -27,6 +39,7 @@ export default function Landing() {
                 <p className="text-secondary mb-4" style={{ fontSize: "1.05rem", lineHeight: 1.6 }}>
                   PesoDash turns saving money into a game. Track expenses, complete quests, and climb the leaderboard — all from your phone.
                 </p>
+                {/* Navigation CTA Buttons */}
                 <div className="d-flex gap-3 mb-2" style={{ maxWidth: 400 }}>
                   <Link to="/register" className="btn gradient-btn fw-bold py-3 flex-fill rounded-3" id="landing-register-btn">
                     Get Started Free
@@ -38,7 +51,7 @@ export default function Landing() {
               </motion.div>
             </div>
 
-            {/* Phone mockup */}
+            {/* Custom Interactive CSS Phone Mockup Graphic */}
             <div className="col-12 col-lg-5 text-center text-lg-end">
               <div className="d-inline-block">
                 <div className="phone-mock" style={{ width: 260, padding: "2rem 1.5rem" }}>
@@ -52,7 +65,7 @@ export default function Landing() {
           </div>
         </section>
 
-        {/* Features */}
+        {/* --- FEATURES GRID --- */}
         <section className="px-3 pb-5">
           <h2 className="fw-bold mb-4" style={{ fontSize: "1.25rem" }}>Everything you need</h2>
           <div className="row row-cols-1 row-cols-lg-2 g-3">
@@ -72,7 +85,7 @@ export default function Landing() {
           </div>
         </section>
 
-        {/* SDG */}
+        {/* --- SDG ALIGNMENT CARD & FOOTER CTA --- */}
         <section className="px-3 pb-4">
           <div className="card rounded-3 mb-4" style={{ background: "rgba(16,185,129,.1)", border: "1px solid rgba(16,185,129,.25)" }}>
             <div className="card-body d-flex align-items-start gap-3 py-3">

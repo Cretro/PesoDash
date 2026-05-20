@@ -1,5 +1,7 @@
 import { motion } from "framer-motion";
 
+// Team metadata list.
+// Explicitly maps roles and contributions to display on the profile dashboard page.
 const DEVELOPERS = [
   { name: "Golpe, John Linus",   role: "Firebase & Auth Lead",      contribution: "Firebase setup, Auth system, Context API, ProtectedRoute", emoji: "🔐", color: "#6366f1" },
   { name: "Lim, Phoenix Miguel", role: "Core Features & UI Lead",   contribution: "Dashboard, Expense CRUD, mobile-first design system", emoji: "💻", color: "#ec4899" },
@@ -7,11 +9,19 @@ const DEVELOPERS = [
   { name: "Talento, Jhobert",    role: "Analytics & Social Lead",   contribution: "Leaderboard, Analytics charts, Advice Slip API, Developers page", emoji: "📊", color: "#10b981" },
 ];
 
+/**
+ * Developers Page Component
+ * 
+ * Purpose: A credit screen showing team member contributions, project goals (SDG 8 alignment),
+ * and course metadata details.
+ * Explains:
+ *  - Staggered entrance animations using framer-motion delay factors (`transition: { delay: index * 0.1 }`).
+ */
 export default function Developers() {
   return (
     <div className="page-content" style={{ maxWidth: 720 }}>
 
-      {/* Header */}
+      {/* Header Info */}
       <div className="text-center mb-4">
         <h1 className="fw-black text-white mb-1" style={{ fontSize: "1.4rem" }}>Meet the Team</h1>
         <p className="text-secondary small mb-2">3ITG — ITELEC2C Final Project</p>
@@ -20,11 +30,15 @@ export default function Developers() {
         </span>
       </div>
 
-      {/* Developer cards */}
+      {/* Developers feed */}
       <div className="d-flex flex-column gap-3 mb-4">
         {DEVELOPERS.map((dev, i) => (
           <motion.div key={dev.name} className="card rounded-4 glass-card"
-            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}
+            // Uses Framer Motion to create a staggered card fade-in on mount.
+            // First card loads instantly, second is delayed by 0.1s, third by 0.2s, etc.
+            initial={{ opacity: 0, y: 20 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            transition={{ delay: i * 0.1 }}
             id={`dev-card-${i + 1}`}
           >
             <div className="card-body d-flex align-items-start gap-3">
@@ -42,7 +56,7 @@ export default function Developers() {
         ))}
       </div>
 
-      {/* SDG */}
+      {/* Sustainable Development Goal Alignment Card */}
       <div className="card rounded-3 mb-3" style={{ background: "rgba(16,185,129,.08)", border: "1px solid rgba(16,185,129,.2)" }}>
         <div className="card-body d-flex align-items-center gap-3 py-3">
           <span style={{ fontSize: "1.4rem" }}>🌏</span>
@@ -53,7 +67,7 @@ export default function Developers() {
         </div>
       </div>
 
-      {/* Course info */}
+      {/* University Course footer details */}
       <div className="text-center">
         <p className="text-secondary small mb-1">ITELEC2C · Front-End Frameworks for Web Application Development</p>
         <p className="text-secondary mb-0" style={{ fontSize: ".75rem" }}>A.Y. 2025–2026</p>

@@ -6,11 +6,21 @@ import { useAuth }    from "../context/AuthContext";
 import { useFriends } from "../context/FriendContext";
 import Avatar from "../components/Avatar";
 
+/**
+ * Profile Page Component
+ * 
+ * Purpose: Allows users to manage settings (like daily budget) and interact with other users.
+ * Key Sections:
+ *  - **Stats Summary**: Real-time display of total points, streak count, and daily limits.
+ *  - **Budget Updates**: Live write-back to `/users/{uid}` in Firestore.
+ *  - **Social Panel**: Integrates with `FriendContext` to trigger emails lookups and accept/decline invites.
+ */
 export default function Profile() {
   const { currentUser, userProfile, logout, setUserProfile } = useAuth();
   const { accepted, incoming, pending, sendFriendRequest, acceptRequest, declineRequest } = useFriends();
   const navigate = useNavigate();
 
+  // Local configurations
   const [budget,     setBudget]     = useState(userProfile?.dailyBudget || 300);
   const [saving,     setSaving]     = useState(false);
   const [saved,      setSaved]      = useState(false);
@@ -18,15 +28,25 @@ export default function Profile() {
   const [friendMsg,  setFriendMsg]  = useState({ text: "", type: "" });
   const [sending,    setSending]    = useState(false);
 
-  async function handleLogout() { await logout(); navigate("/"); }
-
-  async function saveBudget() {
-    setSaving(true);
-    await updateDoc(doc(db, "users", currentUser.uid), { dailyBudget: Number(budget) });
-    setUserProfile({ ...userProfile, dailyBudget: Number(budget) });
-    setSaving(false); setSaved(true); setTimeout(() => setSaved(false), 2000);
+  // Trigger AuthContext signOut function and redirect user back to Landing index page
+  async function handleLogout() { 
+    await logout(); 
+    navigate("/"); 
   }
 
+  // Save the custom daily budget configured in input field back to Firestore
+  async function saveBudget() {
+    setSaving(true);
+    // Write value update back to user document in Firestore database
+    await updateDoc(doc(db, "users", currentUser.uid), { dailyBudget: Number(budget) });
+    // Update local React Context state so the change registers immediately throughout the app without page reload
+    setUserProfile({ ...userProfile, dailyBudget: Number(budget) });
+    setSaving(false); 
+    setSaved(true); 
+    setTimeout(() => setSaved(false), 2000); // Visual indicator timeout reset
+  }
+
+  // Sends friendship requests to a specific email target
   async function handleSendRequest(e) {
     e.preventDefault();
     if (!friendEmail.trim()) return;
@@ -37,13 +57,16 @@ export default function Profile() {
       setFriendEmail("");
     } catch (err) {
       setFriendMsg({ text: err.message, type: "danger" });
-    } finally { setSending(false); setTimeout(() => setFriendMsg({ text: "", type: "" }), 3000); }
+    } finaly: { 
+      setSending(false); 
+      setTimeout(() => setFriendMsg({ text: "", type: "" }), 3000); 
+    }
   }
 
   return (
     <div className="page-content" style={{ maxWidth: 720 }}>
 
-      {/* Avatar + info */}
+      {/* Profile Header Block */}
       <div className="text-center mb-4">
         <div className="d-inline-block mb-3" style={{ borderRadius: "50%", boxShadow: "0 0 0 4px rgba(99,102,241,.3)" }}>
           <Avatar name={currentUser?.displayName || "User"} size={80} />
@@ -52,7 +75,7 @@ export default function Profile() {
         <p className="text-secondary small mb-0">{currentUser?.email}</p>
       </div>
 
-      {/* Stats — Bootstrap row */}
+      {/* Aggregate metrics grid */}
       <div className="row g-2 mb-4">
         {[
           { label: "Total Points", value: userProfile?.totalPoints || 0 },
@@ -70,7 +93,7 @@ export default function Profile() {
         ))}
       </div>
 
-      {/* Budget setting */}
+      {/* Daily Budget Configuration Panel */}
       <div className="card rounded-3 glass-card mb-3">
         <div className="card-body">
           <label className="form-label text-uppercase small fw-semibold text-secondary" htmlFor="profile-budget">
@@ -86,12 +109,12 @@ export default function Profile() {
         </div>
       </div>
 
-      {/* ── Friend System ────────────────────────── */}
+      {/* ── Friend Management Panel ────────────────────────── */}
       <div className="card rounded-3 glass-card mb-3">
         <div className="card-body">
           <h3 className="fw-bold text-white mb-3" style={{ fontSize: "1rem" }}>👥 Friends</h3>
 
-          {/* Add friend */}
+          {/* Invitation Email Form */}
           <form onSubmit={handleSendRequest} className="d-flex gap-2 mb-3">
             <input
               type="email"
@@ -107,7 +130,7 @@ export default function Profile() {
           </form>
           {friendMsg.text && <div className={`alert alert-${friendMsg.type} py-2 small mb-3`}>{friendMsg.text}</div>}
 
-          {/* Incoming requests */}
+          {/* Incoming Requests Feed */}
           {incoming.length > 0 && (
             <div className="mb-3">
               <p className="text-uppercase small fw-semibold text-secondary mb-2" style={{ fontSize: ".72rem" }}>Pending Requests</p>
@@ -129,7 +152,7 @@ export default function Profile() {
             </div>
           )}
 
-          {/* Accepted friends */}
+          {/* Connected Friend List */}
           {accepted.length > 0 ? (
             <div>
               <p className="text-uppercase small fw-semibold text-secondary mb-2" style={{ fontSize: ".72rem" }}>Friends ({accepted.length})</p>
@@ -151,7 +174,7 @@ export default function Profile() {
             )
           )}
 
-          {/* Sent (pending) */}
+          {/* Sent Outgoing Requests (Awaiting Friend Response) */}
           {pending.length > 0 && (
             <div className="mt-3">
               <p className="text-uppercase small fw-semibold text-secondary mb-2" style={{ fontSize: ".72rem" }}>Requests Sent</p>
@@ -171,12 +194,12 @@ export default function Profile() {
         </div>
       </div>
 
-      {/* Developers link */}
+      {/* Navigation shortcuts */}
       <button className="btn btn-outline-secondary w-100 rounded-3 fw-semibold mb-2 py-3" onClick={() => navigate("/developers")} id="profile-dev-page-btn">
         👨‍💻 Meet the Developers
       </button>
 
-      {/* Logout */}
+      {/* Logout Trigger */}
       <button className="btn btn-outline-danger w-100 rounded-3 fw-bold py-3" onClick={handleLogout} id="profile-logout-btn">
         Sign Out
       </button>

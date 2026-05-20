@@ -4,16 +4,33 @@ import { motion } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
 import { useQuests } from "../context/QuestContext";
 
+/**
+ * Register Page Component
+ * 
+ * Purpose: Registers new users on the platform.
+ * Key Logic points:
+ *  - **Input Validation**: Verifies password length (> 6 characters) and matching confirm passwords.
+ *  - **User Profile Creation**: Registers the user session with Firebase Auth.
+ *  - **Quest Initialization**: Crucial step! After registration, we trigger `initializeQuests()`
+ *    from `QuestContext` to seed the database with the user's first active quests.
+ */
 export default function Register() {
   const { register } = useAuth();
   const { initializeQuests } = useQuests();
   const navigate = useNavigate();
+
+  // Local Form States
   const [form, setForm]     = useState({ displayName: "", email: "", password: "", confirm: "" });
   const [error, setError]   = useState("");
   const [loading, setLoading] = useState(false);
 
-  function handleChange(e) { setForm({ ...form, [e.target.name]: e.target.value }); setError(""); }
+  // Updates form state dynamically on keyboard input
+  function handleChange(e) { 
+    setForm({ ...form, [e.target.name]: e.target.value }); 
+    setError(""); 
+  }
 
+  // Pre-submit validations to save unnecessary database request roundtrips
   function validate() {
     if (!form.displayName.trim()) return "Please enter your name.";
     if (!form.email) return "Please enter your email.";
@@ -22,18 +39,30 @@ export default function Register() {
     return null;
   }
 
+  // Registration Submission Handler
   async function handleSubmit(e) {
     e.preventDefault();
     const err = validate();
-    if (err) { setError(err); return; }
+    if (err) { 
+      setError(err); 
+      return; 
+    }
+
     setLoading(true);
     try {
+      // 1. Register with Firebase Auth (which creates the profile doc in Firestore via AuthContext)
       await register(form.email, form.password, form.displayName.trim());
+      
+      // 2. Seed default active quests for the newly created user ID
       await initializeQuests();
+      
+      // 3. Redirect to the main interface dashboard
       navigate("/dashboard");
     } catch (err) {
       setError(err.code === "auth/email-already-in-use" ? "Email already registered." : "Registration failed. Try again.");
-    } finally { setLoading(false); }
+    } finally { 
+      setLoading(false); 
+    }
   }
 
   return (
