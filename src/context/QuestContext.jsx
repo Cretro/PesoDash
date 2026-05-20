@@ -162,27 +162,32 @@ export function QuestProvider({ children }) {
       const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       setQuests(data);
       setLoading(false);
-
-      // 1. Auto-seeding: If the snapshot is completely empty, initialize default quests for the user.
-      if (snap.empty && !initializing) {
-        initializeQuests();
-      } else {
-        // 2. Synchronization: Sync fields with templates (updates period changes, category constraints, etc.)
-        syncQuestsWithTemplates(data);
-        // 3. Reset Audit: Run midnight/weekly rollover checks and award points if criteria were met.
-        checkAndResetQuests(data, expenses);
-      }
     }, (err) => {
       console.error("QuestContext onSnapshot failed:", err);
     });
     return unsub;
   }, [currentUser]);
 
+  // Effect: Declares side-effects for initializing quests if none are found in the database.
+  useEffect(() => {
+    if (loading || !currentUser || initializing) return;
+    if (quests.length === 0) {
+      initializeQuests();
+    }
+  }, [loading, quests.length, currentUser, initializing]);
+
+  // Effect: Audits resets and syncs quests with templates cleanly outside onSnapshot listener.
+  useEffect(() => {
+    if (loading || !quests.length || !currentUser) return;
+    syncQuestsWithTemplates(quests);
+    checkAndResetQuests(quests, expenses);
+  }, [loading, quests.map((q) => q.id).join(","), templates.length, expenses.length, currentUser]);
+
   // Effect: Calculates and updates active quest progress whenever expenses log changes or quests shift.
   useEffect(() => {
-    if (!quests.length) return;
+    if (loading || !quests.length || !currentUser) return;
     syncQuestProgress(quests, expenses);
-  }, [expenses, quests.map((q) => q.id).join(",")]);
+  }, [expenses, quests.map((q) => q.id).join(","), loading, currentUser]);
 
   /** 
    * CORE ENGINE FUNCTION: syncQuestProgress
