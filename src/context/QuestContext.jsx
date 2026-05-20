@@ -188,7 +188,7 @@ export function QuestProvider({ children }) {
 
     for (const quest of questData) {
       let newProgress = 0;
-      const qType = quest.questType || "streak";
+      const qType = quest.questType;
       const qCategory = quest.category || null;
       const qTarget = Number(quest.target || 0);
       const isDaily = quest.period === "daily";
@@ -217,7 +217,7 @@ export function QuestProvider({ children }) {
           newProgress = streak;
         }
 
-      // --- EVALUATION PATH 2: Category Limit Target Days ---
+        // --- EVALUATION PATH 2: Category Limit Target Days ---
       } else if (qType === "days_under_category_limit") {
         let daysCount = 0;
         for (const date of activeDates) {
@@ -230,7 +230,7 @@ export function QuestProvider({ children }) {
         }
         newProgress = daysCount;
 
-      // --- EVALUATION PATH 3: Zero Splurge (E.g. Log ₱0 spent in Others) ---
+        // --- EVALUATION PATH 3: Zero Splurge (E.g. Log ₱0 spent in Others) ---
       } else if (qType === "zero_splurge_days" || qType === "zero_splurge") {
         if (isDaily) {
           const catSpend = todayExpenses
@@ -252,14 +252,14 @@ export function QuestProvider({ children }) {
           newProgress = quest.questType === "zero_splurge" ? (zeroDays > 0 ? 1 : 0) : zeroDays;
         }
 
-      // --- EVALUATION PATH 4: Total Spend Limits (Frugal Foodie: <= ₱1000 spend) ---
+        // --- EVALUATION PATH 4: Total Spend Limits (Frugal Foodie: <= ₱1000 spend) ---
       } else if (qType === "category" || qType === "total_spend_limit") {
         const totalSpent = activeExpenses
           .filter((e) => e.category === qCategory)
           .reduce((sum, e) => sum + Number(e.amount), 0);
         newProgress = totalSpent;
 
-      // --- EVALUATION PATH 5: Savings Goal (Budget remaining - spend) ---
+        // --- EVALUATION PATH 5: Savings Goal (Budget remaining - spend) ---
       } else if (qType === "savings_goal") {
         if (isDaily) {
           const totalSpent = todayExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
@@ -310,7 +310,7 @@ export function QuestProvider({ children }) {
         const expectedCategory = template.category || null;
         const expectedDesc = template.description || "";
         const expectedIcon = template.icon || "";
-        const expectedQuestType = template.questType || "streak";
+        const expectedQuestType = template.questType;
 
         if (quest.period !== expectedPeriod) updates.period = expectedPeriod;
         if (Number(quest.target) !== expectedTarget) updates.target = expectedTarget;
@@ -346,7 +346,7 @@ export function QuestProvider({ children }) {
       // --- Rollover Branch A: DAILY QUESTS ---
       if (isDaily) {
         const lastReset = quest.lastResetDate || getPHDateString(new Date(Date.now() - 86400000));
-        
+
         // If lastResetDate is in the past (midnight has passed since last check)
         if (lastReset < todayStr) {
           const updatePayload = {
@@ -355,7 +355,7 @@ export function QuestProvider({ children }) {
             completed: false,
           };
 
-          const qType = quest.questType || "streak";
+          const qType = quest.questType;
           const qTarget = Number(quest.target || 0);
 
           // Audit success criteria at midnight
@@ -381,7 +381,7 @@ export function QuestProvider({ children }) {
           await updateDoc(doc(db, "quests", quest.id), updatePayload);
         }
 
-      // --- Rollover Branch B: WEEKLY QUESTS ---
+        // --- Rollover Branch B: WEEKLY QUESTS ---
       } else {
         // If weekStart is in the past (Sunday has passed since last check)
         if (quest.weekStart && quest.weekStart < currentWeek) {
@@ -391,7 +391,7 @@ export function QuestProvider({ children }) {
             completed: false,
           };
 
-          const qType = quest.questType || "streak";
+          const qType = quest.questType;
           const qTarget = Number(quest.target || 0);
 
           let wasSuccessful = quest.completed;
@@ -433,7 +433,7 @@ export function QuestProvider({ children }) {
       // Write template instances directly to '/quests' collection owned by the user's UID
       for (const template of templates) {
         await addDoc(collection(db, "quests"), {
-          questType: template.questType || "streak",
+          questType: template.questType,
           period: template.period || "weekly",
           title: template.title,
           description: template.description,

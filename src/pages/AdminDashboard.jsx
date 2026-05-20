@@ -138,7 +138,7 @@ export default function AdminDashboard() {
     }
 
     try {
-      const qType = questType || "streak";
+      const qType = questType;
       const payload = {
         title: title.trim(),
         description: description.trim(),
@@ -461,7 +461,7 @@ export default function AdminDashboard() {
                                 {temp.period || "weekly"}
                               </span>
                               <span className="badge rounded-pill small" style={{ background: "rgba(255, 255, 255, 0.08)", color: "#94a3b8", border: "1px solid rgba(255, 255, 255, 0.12)", fontSize: "0.7rem" }}>
-                                {temp.questType || "streak"}
+                                {temp.questType}
                               </span>
                               <span className="badge rounded-pill small" style={{ background: "rgba(99, 102, 241, 0.15)", color: "#818cf8", border: "1px solid rgba(99, 102, 241, 0.3)", fontSize: "0.7rem" }}>
                                 Target: {["category", "total_spend_limit", "savings_goal"].includes(temp.questType) ? `₱${temp.target}` : `${temp.target} days`}
@@ -482,7 +482,7 @@ export default function AdminDashboard() {
                                 onClick={() => {
                                   setEditingTemplate(temp);
                                   setTemplateForm({
-                                    questType: temp.questType || "streak",
+                                    questType: temp.questType,
                                     period: temp.period || "weekly",
                                     title: temp.title,
                                     description: temp.description,
