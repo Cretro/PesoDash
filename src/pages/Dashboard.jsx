@@ -36,7 +36,7 @@ export default function Dashboard() {
   const dailyBudget = userProfile?.dailyBudget || 300;
   const todayStr = getTodayString(); // Gets current local date string (YYYY-MM-DD)
 
-  // Live clock for the header
+  // Live clock for the header to show standard system time
   const [now, setNow] = useState(new Date());
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
