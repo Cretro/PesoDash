@@ -30,6 +30,7 @@ const QUEST_TEMPLATES = [
     target: 7,
     pointsReward: 100,
     icon: "🔥",
+    period: "persistent",
   },
   {
     questType: "category",
@@ -82,10 +83,6 @@ function getCurrentWeekStart() {
   return getPHDateString(ph);
 }
 
-/** 
- * Helper: Returns all 7 dates (Sun to Sat) for the current week.
- * Used to map expenses and daily targets across the current weekly cycle.
- */
 function getCurrentWeekDates() {
   const weekStart = getCurrentWeekStart();
   const dates = [];
@@ -95,6 +92,47 @@ function getCurrentWeekDates() {
     dates.push(getPHDateString(d));
   }
   return dates;
+}
+
+/**
+ * Calculates the current consecutive streak ending yesterday.
+ * Checks expenses day-by-day going backward starting from yesterday.
+ * Stop conditions:
+ * 1. Day total > dailyBudget (streak broken)
+ * 2. Reached a date before the user's earliest logged expense.
+ */
+function calculatePastStreak(expenseData, dailyBudget, todayStr) {
+  if (!expenseData || expenseData.length === 0) return 0;
+
+  // Find the earliest date in user's logged expenses
+  const dates = expenseData.map((e) => e.date).filter(Boolean);
+  if (dates.length === 0) return 0;
+  const earliestDateStr = dates.reduce((min, d) => (d < min ? d : min), todayStr);
+
+  let streak = 0;
+  let currentDate = new Date(todayStr + "T00:00:00");
+
+  // Start walking backward from yesterday
+  currentDate.setDate(currentDate.getDate() - 1);
+
+  while (true) {
+    const dateStr = getPHDateString(currentDate);
+    if (dateStr < earliestDateStr) break;
+
+    const dayTotal = expenseData
+      .filter((e) => e.date === dateStr)
+      .reduce((sum, e) => sum + Number(e.amount), 0);
+
+    if (dayTotal <= dailyBudget) {
+      streak++;
+    } else {
+      break; // Streak broken: consecutive chain terminates here
+    }
+
+    currentDate.setDate(currentDate.getDate() - 1);
+  }
+
+  return streak;
 }
 
 export function QuestProvider({ children }) {
@@ -144,13 +182,17 @@ export function QuestProvider({ children }) {
         if (!templateMigrationDone.current) {
           templateMigrationDone.current = true;
           snap.docs.forEach(async (d) => {
-            if (d.data().hasOwnProperty("targetType")) {
-              const data = d.data();
-              const qType = data.targetType || data.questType || "streak";
-              await updateDoc(doc(db, "questTemplates", d.id), {
-                questType: qType,
-                targetType: deleteField(),
-              });
+            const data = d.data();
+            const updates = {};
+            if (data.hasOwnProperty("targetType")) {
+              updates.questType = data.targetType || data.questType || "streak";
+              updates.targetType = deleteField();
+            }
+            if (data.questType === "streak" && data.period !== "persistent") {
+              updates.period = "persistent";
+            }
+            if (Object.keys(updates).length > 0) {
+              await updateDoc(doc(db, "questTemplates", d.id), updates);
             }
           });
         }
@@ -183,13 +225,17 @@ export function QuestProvider({ children }) {
       if (!questMigrationDone.current) {
         questMigrationDone.current = true;
         snap.docs.forEach(async (d) => {
-          if (d.data().hasOwnProperty("targetType")) {
-            const data = d.data();
-            const qType = data.targetType || data.questType || "streak";
-            await updateDoc(doc(db, "quests", d.id), {
-              questType: qType,
-              targetType: deleteField(),
-            });
+          const data = d.data();
+          const updates = {};
+          if (data.hasOwnProperty("targetType")) {
+            updates.questType = data.targetType || data.questType || "streak";
+            updates.targetType = deleteField();
+          }
+          if (data.questType === "streak" && data.period !== "persistent") {
+            updates.period = "persistent";
+          }
+          if (Object.keys(updates).length > 0) {
+            await updateDoc(doc(db, "quests", d.id), updates);
           }
         });
       }
@@ -258,8 +304,8 @@ export function QuestProvider({ children }) {
           // Today already exceeded the budget — immediately reset the streak
           newProgress = 0;
         } else {
-          // Today is still on track — preserve the stored streak (do not increment yet)
-          newProgress = quest.progress || 0;
+          // Today is still on track — dynamically calculate the past streak ending yesterday
+          newProgress = calculatePastStreak(expenseData, dailyBudget, todayStr);
         }
 
         // --- EVALUATION PATH 2: Category Limit Target Days ---
