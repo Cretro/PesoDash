@@ -6,29 +6,43 @@ import {
 import { db } from "../firebase/firebase";
 import { useAuth } from "./AuthContext";
 
-// FriendContext: Exports friend-tracking states and operations (sending, accepting, declining requests)
+// ==========================================
+// FRIEND CONTEXT SETUP
+// ==========================================
+// FriendContext manages social interactions in PesoDash (sending requests, accepting, declining, listing friends).
+// It utilizes a bi-directional subcollection pattern:
+// - Each friendship request exists in two subcollections:
+//   - /users/{userA}/friends/{userB}
+//   - /users/{userB}/friends/{userA}
+// This keeps database queries fast and scoped, allowing users to see their friends list in real-time.
 const FriendContext = createContext(null);
 
 export function FriendProvider({ children }) {
+  // friends: Stores raw documents retrieved from the current user's friends subcollection
   const [friends, setFriends] = useState([]);
+
+  // loading: Indicates whether the initial Firestore onSnapshot subscription is still querying
   const [loading, setLoading] = useState(true);
+  // currentUser: Session user utilized to dynamically build subcollection queries
   const { currentUser, userProfile } = useAuth();
 
-  // Real-time listener on the current user's friends subcollection:
-  // Listens to: /users/{currentUser.uid}/friends/
-  // Fires instantly on updates, adding new incoming or outgoing requests to state.
+  /**
+   * REAL-TIME FRIEND RELATIONSHIPS SYNC LISTENER
+   * Listens to the current user's friends subcollection in real-time.
+   */
   useEffect(() => {
     if (!currentUser) {
       setFriends([]);
       setLoading(true);
       return;
     }
+    // Bind snapshot query to `/users/{uid}/friends`
     const q = collection(db, "users", currentUser.uid, "friends");
     const unsub = onSnapshot(q, (snap) => {
       setFriends(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
       setLoading(false);
     }, (err) => {
-      // Diagnostic handler: logs errors (like permission denied) and unblocks UI loading spinner
+      // Diagnostic fallback: ensures UI spinner is unblocked even if database rules block access
       console.error("FriendContext onSnapshot failed:", err);
       setLoading(false);
     });
@@ -36,8 +50,8 @@ export function FriendProvider({ children }) {
   }, [currentUser]);
 
   /** 
-   * Search for a user by email in the top-level users collection.
-   * Runs a Firestore query: where("email", "==", targetEmail)
+   * findUserByEmail
+   * Queries top-level user accounts to resolve an email address to a unique UID profile payload.
    */
   async function findUserByEmail(email) {
     const q = query(collection(db, "users"), where("email", "==", email.trim().toLowerCase()));
@@ -48,10 +62,10 @@ export function FriendProvider({ children }) {
   }
 
   /** 
-   * Send a friend request.
-   * To keep operations real-time and secure, a document is written to two locations:
-   *  1. Sender's list: /users/{senderUid}/friends/{receiverUid} (status: "pending")
-   *  2. Receiver's list: /users/{receiverUid}/friends/{senderUid} (status: "pending")
+   * sendFriendRequest
+   * Performs bi-directional writes to initiate a friendship:
+   * 1. Outgoing Request Document: Created in the sender's subcollection.
+   * 2. Incoming Request Document: Created in the receiver's subcollection.
    */
   async function sendFriendRequest(email) {
     if (!currentUser) throw new Error("Not logged in");
@@ -59,7 +73,7 @@ export function FriendProvider({ children }) {
     if (!target) throw new Error("No user found with that email.");
     if (target.uid === currentUser.uid) throw new Error("You can't add yourself!");
 
-    // Check if a relationship (pending request or accepted friendship) already exists in local state
+    // Validate if the request already exists in current local relationship cache
     const existing = friends.find((f) => f.id === target.uid);
     if (existing) throw new Error(`Already ${existing.status === "accepted" ? "friends" : "request pending"}.`);
 
@@ -69,7 +83,7 @@ export function FriendProvider({ children }) {
       createdAt: serverTimestamp(),
     };
 
-    // Write to sender's subcollection (representing an outgoing request)
+    // Write outgoing item for the sender
     await setDoc(doc(db, "users", currentUser.uid, "friends", target.uid), {
       ...payload,
       friendUid: target.uid,
@@ -78,7 +92,7 @@ export function FriendProvider({ children }) {
       friendGender: target.gender || "prefer_not_to_say",
     });
 
-    // Write to receiver's subcollection (representing an incoming request)
+    // Write incoming item for the recipient
     await setDoc(doc(db, "users", target.uid, "friends", currentUser.uid), {
       ...payload,
       friendUid: currentUser.uid,
@@ -89,8 +103,8 @@ export function FriendProvider({ children }) {
   }
 
   /** 
-   * Accept an incoming friend request.
-   * Updates the status to "accepted" in both the user's and the friend's subcollections.
+   * acceptRequest
+   * Approves request. Overwrites 'status' to 'accepted' in BOTH user subcollections.
    */
   async function acceptRequest(friendUid) {
     await updateDoc(doc(db, "users", currentUser.uid, "friends", friendUid), { status: "accepted" });
@@ -98,15 +112,15 @@ export function FriendProvider({ children }) {
   }
 
   /** 
-   * Decline or remove a friend request.
-   * Sets the status in both documents to "declined".
+   * declineRequest
+   * Rejects request or un-friends. Updates status to 'declined' in BOTH user documents.
    */
   async function declineRequest(friendUid) {
     await updateDoc(doc(db, "users", currentUser.uid, "friends", friendUid), { status: "declined" });
     await updateDoc(doc(db, "users", friendUid, "friends", currentUser.uid), { status: "declined" });
   }
 
-  // Filter friends into clean category arrays for easy component rendering
+  // Filter relationship objects into clean categories for presentation inside visual views
   const accepted  = friends.filter((f) => f.status === "accepted");
   const incoming  = friends.filter((f) => f.status === "pending" && f.sentBy !== currentUser?.uid);
   const pending   = friends.filter((f) => f.status === "pending" && f.sentBy === currentUser?.uid);
@@ -115,7 +129,7 @@ export function FriendProvider({ children }) {
     <FriendContext.Provider value={{
       friends, loading,
       accepted, incoming, pending,
-      pendingCount: incoming.length, // Display count for notification badges (Sidebar/BottomNav)
+      pendingCount: incoming.length, // Exposed count used to render orange notification badges on navigators
       sendFriendRequest, acceptRequest, declineRequest,
     }}>
       {children}
@@ -123,7 +137,7 @@ export function FriendProvider({ children }) {
   );
 }
 
-// useFriends Hook: Quick-access hook for consuming FriendContext values inside components
+// Hook shortcut
 export function useFriends() {
   return useContext(FriendContext);
 }

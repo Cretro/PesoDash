@@ -130,16 +130,42 @@ export default function Quests() {
                   {/* ACTIVE TAB: Render Current Progress Controls */}
                   {tab === "active" && (
                     <div className="mt-2">
-                      {quest.period === "daily" ? (
+                      {qType === "streak" ? (
+                        // --- BRANCH C: PERSISTENT STREAK TRACKER ---
+                        (() => {
+                          const displayProgress = (quest.progress % quest.target === 0 && quest.progress > 0) ? quest.target : (quest.progress % quest.target);
+                          const progressPercent = Math.min((displayProgress / quest.target) * 100, 100);
+                          return (
+                            <>
+                              <div className="progress mb-1" style={{ height: 6 }}>
+                                <div className="progress-bar" role="progressbar"
+                                  style={{ 
+                                    width: `${progressPercent}%`, 
+                                    background: "var(--pd-primary)" 
+                                  }}
+                                  aria-valuenow={displayProgress} aria-valuemin={0} aria-valuemax={quest.target} />
+                              </div>
+                              <div className="d-flex justify-content-between align-items-center mt-1">
+                                <span className="small fw-semibold text-secondary" style={{ fontSize: ".72rem" }}>
+                                  {quest.progress > 0 ? `🔥 ${quest.progress}-Day Streak` : "No active streak"}
+                                </span>
+                                <span className="text-secondary font-monospace" style={{ fontSize: ".72rem" }}>
+                                  {displayProgress} / {quest.target} days
+                                </span>
+                              </div>
+                            </>
+                          );
+                        })()
+                      ) : quest.period === "daily" ? (
                         // --- BRANCH A: DAILY QUEST TRACKER ---
                         <>
-                          {(qType === "streak" || qType === "zero_splurge_days" || qType === "zero_splurge") ? (
+                          {(qType === "zero_splurge_days" || qType === "zero_splurge") ? (
                             // Binary/Status Daily Challenges (Must hold state till midnight)
                             quest.progress === 1 ? (
                               <div className="d-flex align-items-center justify-content-between p-2 rounded-3" 
                                 style={{ background: "rgba(16, 185, 129, 0.06)", border: "1px solid rgba(16, 185, 129, 0.15)", color: "#34d399" }}>
                                 <span className="small fw-semibold">
-                                  ⏳ On Track ({qType === "streak" ? "Under Budget" : `₱0 on ${quest.category || "Others"}`})
+                                  ⏳ On Track (₱0 on {quest.category || "Others"})
                                 </span>
                                 <span className="small text-secondary font-monospace" style={{ fontSize: ".72rem" }}>
                                   {timeToMidnight}
@@ -149,7 +175,7 @@ export default function Quests() {
                               <div className="d-flex align-items-center justify-content-between p-2 rounded-3" 
                                 style={{ background: "rgba(239, 68, 68, 0.06)", border: "1px solid rgba(239, 68, 68, 0.15)", color: "#f87171" }}>
                                 <span className="small fw-semibold">
-                                  ❌ Failed ({qType === "streak" ? "Exceeded Budget" : `Spent on ${quest.category || "Others"}`})
+                                  ❌ Failed (Spent on {quest.category || "Others"})
                                 </span>
                                 <span className="small text-secondary font-monospace" style={{ fontSize: ".72rem" }}>
                                   Resets at midnight

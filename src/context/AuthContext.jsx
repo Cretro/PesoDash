@@ -6,27 +6,37 @@ import {
   onAuthStateChanged,
   updateProfile,
 } from "firebase/auth";
-import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp, onSnapshot } from "firebase/firestore";
 import { auth, db } from "../firebase/firebase";
 
-// AuthContext: Holds the global session state and profile document of the logged-in user.
+// ==========================================
+// AUTH CONTEXT SETUP
+// ==========================================
+// AuthContext serves as the global state container for everything related to authentication
+// and the current user's profile details. It exports credentials, hooks, and helpers.
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
+  // currentUser: Stores the Firebase Auth user session details (email, uid, base auth status)
   const [currentUser, setCurrentUser] = useState(null);
+
+  // userProfile: Stores the custom user data from our Firestore '/users' collection (streak, points, budget, role)
   const [userProfile, setUserProfile] = useState(null);
+
+  // loading: Prevents UI rendering before checking session status
   const [loading, setLoading] = useState(true);
 
   /** 
-   * Registers a new user:
-   *  1. Creates user in Firebase Authentication.
-   *  2. Updates their profile displayName.
-   *  3. Creates a corresponding document in the `/users` Firestore collection to store metadata 
-   *     (daily budget, points, streaks) that Firebase Auth doesn't support by default.
+   * REGISTRATION FUNCTION
+   * 1. Creates a user account in Firebase Authentication.
+   * 2. Sets their public auth display name.
+   * 3. Seeds the initial Firestore collection record with default starting parameters.
    */
   async function register(email, password, displayName, gender) {
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(cred.user, { displayName });
+    
+    // Seed initial Firestore collection record with default starting parameters
     await setDoc(doc(db, "users", cred.user.uid), {
       displayName,
       email,
@@ -39,49 +49,75 @@ export function AuthProvider({ children }) {
     return cred;
   }
 
-  // Logs the user in using Firebase Authentication
+  /**
+   * LOGIN FUNCTION
+   * Standard Firebase helper to sign in a user by comparing credentials with Firebase Auth databases.
+   */
   function login(email, password) {
     return signInWithEmailAndPassword(auth, email, password);
   }
 
-  // Logs the user out of the Firebase session
+  /**
+   * LOGOUT FUNCTION
+   * Standard Firebase helper to terminate the current session. Automatically resets currentUser.
+   */
   function logout() {
     return signOut(auth);
   }
 
-  // Fetches custom user profile details from Firestore using their unique UID
-  async function fetchUserProfile(uid) {
-    const snap = await getDoc(doc(db, "users", uid));
-    if (snap.exists()) setUserProfile(snap.data());
-  }
-
-  // Effect: Attaches a Firebase Auth listener to track session changes (login, logout, refresh).
-  // Wrapped in try-catch-finally to guarantee the page stops showing a black loading screen 
-  // even if network or Firestore errors occur during startup.
+  /**
+   * LIFE-CYCLE LISTENER: AUTH STATE & PROFILE DOCUMENT
+   * This critical hook registers an auth state changed listener when the app loads.
+   * - If a user is logged in, it binds a real-time 'onSnapshot' listener to the user's doc in Firestore.
+   * - This ensures that if points, budgets, or streaks update anywhere in the DB, the entire UI syncs immediately.
+   */
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (user) => {
+    let profileUnsub = null;
+    const authUnsub = onAuthStateChanged(auth, async (user) => {
       try {
         setCurrentUser(user);
-        if (user) await fetchUserProfile(user.uid);
-        else setUserProfile(null);
+        if (user) {
+          // Set up real-time listener for the user's profile document under '/users/{uid}'
+          profileUnsub = onSnapshot(doc(db, "users", user.uid), (snap) => {
+            if (snap.exists()) {
+              setUserProfile(snap.data());
+            }
+          }, (err) => {
+            console.error("AuthContext: Failed to fetch user profile real-time.", err);
+          });
+        } else {
+          // Clear profile on logout
+          setUserProfile(null);
+          if (profileUnsub) {
+            profileUnsub();
+            profileUnsub = null;
+          }
+        }
       } catch (err) {
         console.error("Auth initialization error:", err);
       } finally {
+        // Stop loading once the auth checker resolves the session status
         setLoading(false);
       }
     });
-    return unsub;
+
+    // Unsubscribe from active listeners when component unmounts to prevent memory leaks
+    return () => {
+      authUnsub();
+      if (profileUnsub) profileUnsub();
+    };
   }, []);
 
+  // Packaged values exposed to the entire React component tree via AuthContext.Provider
   const value = {
     currentUser,
     userProfile,
     setUserProfile,
-    isAdmin: userProfile?.role === "admin", // Exposes boolean helper for admin route guard validation
+    // Computed property checking if role in DB is "admin"
+    isAdmin: userProfile?.role === "admin", 
     register,
     login,
     logout,
-    fetchUserProfile,
   };
 
   return (
