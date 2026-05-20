@@ -158,7 +158,7 @@ export function QuestProvider({ children }) {
         // 2. Synchronization: Sync fields with templates (updates period changes, category constraints, etc.)
         syncQuestsWithTemplates(data);
         // 3. Reset Audit: Run midnight/weekly rollover checks and award points if criteria were met.
-        checkAndResetQuests(data);
+        checkAndResetQuests(data, expenses);
       }
     }, (err) => {
       console.error("QuestContext onSnapshot failed:", err);
@@ -197,24 +197,18 @@ export function QuestProvider({ children }) {
       const activeDates = isDaily ? [todayStr] : weekDates.filter((d) => d <= todayStr);
       const activeExpenses = isDaily ? todayExpenses : weekExpenses;
 
-      // --- EVALUATION PATH 1: Streaks (Staying under daily budget limit) ---
+      // --- EVALUATION PATH 1: Streaks (Persistent consecutive days under daily budget) ---
+      // Streaks persist across weeks — they are NOT reset weekly.
+      // Today is excluded: the day is still in progress, so we can't confirm it yet.
+      // The midnight audit (checkAndResetQuests) handles incrementing the streak each morning.
       if (qType === "streak") {
-        if (isDaily) {
-          const todayTotal = todayExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
-          newProgress = todayTotal <= dailyBudget ? 1 : 0;
+        const todayTotal = todayExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
+        if (todayTotal > dailyBudget) {
+          // Today already exceeded the budget — immediately reset the streak
+          newProgress = 0;
         } else {
-          let streak = 0;
-          for (const date of activeDates) {
-            const dayTotal = weekExpenses
-              .filter((e) => e.date === date)
-              .reduce((sum, e) => sum + Number(e.amount), 0);
-            if (dayTotal <= dailyBudget) {
-              streak++;
-            } else {
-              break; // Streak broken: consecutive chain terminates here
-            }
-          }
-          newProgress = streak;
+          // Today is still on track — preserve the stored streak (do not increment yet)
+          newProgress = quest.progress || 0;
         }
 
         // --- EVALUATION PATH 2: Category Limit Target Days ---
@@ -273,14 +267,18 @@ export function QuestProvider({ children }) {
 
       // --- COMPLETION AUDIT (Immediate vs. Midnight Audit) ---
       let isCompleted = false;
-      if (qType === "category" || qType === "total_spend_limit") {
+      if (qType === "streak") {
+        // Streak milestones are awarded at midnight — preserve the stored completed state.
+        // If the streak was just broken (progress reset to 0), clear the completed flag too.
+        isCompleted = newProgress > 0 ? (quest.completed || false) : false;
+      } else if (qType === "category" || qType === "total_spend_limit") {
         // Spend limits can only be completed when the week ends without overspending (audited at reset)
         isCompleted = false;
       } else if (isDaily) {
         // Daily quests are completed only after midnight passes to avoid cheating (audited at reset)
         isCompleted = false;
       } else {
-        // Standard streak/savings quests complete instantly once threshold is reached
+        // Standard savings quests complete instantly once threshold is reached
         isCompleted = newProgress >= qTarget;
       }
 
@@ -336,12 +334,61 @@ export function QuestProvider({ children }) {
    *  2. If successful, increments 'timesCompleted', logs date into 'completionHistory', and awards points to the user document.
    *  3. Resets quest progress back to 0 and updates the rollover dates ('lastResetDate' or 'weekStart').
    */
-  async function checkAndResetQuests(questData) {
+  async function checkAndResetQuests(questData, expenseData) {
     const currentWeek = getCurrentWeekStart();
     const todayStr = getPHDateString();
+    const dailyBudget = userProfile?.dailyBudget || 300;
 
     for (const quest of questData) {
       const isDaily = quest.period === "daily";
+      const qType = quest.questType;
+      const qTarget = Number(quest.target || 0);
+
+      // --- STREAK QUESTS: Persistent cross-week streak ---
+      // Streaks are NOT reset weekly. They persist until a day is failed.
+      // At midnight, each completed past day is audited and added to the streak counter.
+      // Points are awarded at every `target`-day milestone (e.g. every 7 days).
+      if (qType === "streak") {
+        const lastReset = quest.lastResetDate || getPHDateString(new Date(Date.now() - 86400000));
+        if (lastReset < todayStr) {
+          let currentStreak = quest.progress || 0;
+          let milestonesHit = 0;
+
+          // Audit every day from lastReset up to (but not including) today
+          let auditDate = new Date(lastReset + "T00:00:00");
+          while (getPHDateString(auditDate) < todayStr) {
+            const dateStr = getPHDateString(auditDate);
+            const dayTotal = (expenseData || [])
+              .filter((e) => e.date === dateStr)
+              .reduce((sum, e) => sum + Number(e.amount), 0);
+
+            if (dayTotal <= dailyBudget) {
+              currentStreak++;
+              // Check milestone: award points every `target` consecutive days
+              if (qTarget > 0 && currentStreak % qTarget === 0) {
+                milestonesHit++;
+              }
+            } else {
+              currentStreak = 0; // Day failed — reset the consecutive counter
+            }
+            auditDate.setDate(auditDate.getDate() + 1);
+          }
+
+          // Award cumulative points for all milestones hit during the audit window
+          if (milestonesHit > 0) {
+            await updateDoc(doc(db, "users", currentUser.uid), {
+              totalPoints: increment(quest.pointsReward * milestonesHit),
+            });
+          }
+
+          await updateDoc(doc(db, "quests", quest.id), {
+            lastResetDate: todayStr,
+            progress: currentStreak,
+            completed: milestonesHit > 0,
+          });
+        }
+        continue; // Skip the daily/weekly reset branches for streak quests
+      }
 
       // --- Rollover Branch A: DAILY QUESTS ---
       if (isDaily) {
@@ -354,9 +401,6 @@ export function QuestProvider({ children }) {
             progress: 0,
             completed: false,
           };
-
-          const qType = quest.questType;
-          const qTarget = Number(quest.target || 0);
 
           // Audit success criteria at midnight
           let wasSuccessful = false;
@@ -390,9 +434,6 @@ export function QuestProvider({ children }) {
             progress: 0,
             completed: false,
           };
-
-          const qType = quest.questType;
-          const qTarget = Number(quest.target || 0);
 
           let wasSuccessful = quest.completed;
           if (qType === "category" || qType === "total_spend_limit") {
