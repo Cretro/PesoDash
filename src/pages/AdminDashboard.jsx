@@ -231,21 +231,30 @@ export default function AdminDashboard() {
     const target = templateForm.target || "X";
     const category = templateForm.category || "[Category]";
     const qType = templateForm.questType || "streak";
+    const isDaily = templateForm.period === "daily";
 
     if (qType === "streak") {
-      return `Stay under your daily budget for ${target} days in a row this week`;
+      return isDaily
+        ? "Stay under your daily budget today"
+        : `Stay under your daily budget for ${target} days in a row this week`;
     }
     if (qType === "total_spend_limit" || qType === "category") {
-      return `Spend less than ₱${target} on ${category || "all expenses"} this week`;
+      return isDaily
+        ? `Spend less than ₱${target} on ${category} today`
+        : `Spend less than ₱${target} on ${category} this week`;
     }
     if (qType === "zero_splurge_days" || qType === "zero_splurge") {
-      return `Spend ₱0 on ${category || "Others"} for ${target} days this week`;
+      return isDaily
+        ? `Spend ₱0 on ${category} today`
+        : `Spend ₱0 on ${category} for ${target} days this week`;
     }
     if (qType === "savings_goal") {
-      return `Save at least ₱${target} this week by staying under budget`;
+      return isDaily
+        ? `Save at least ₱${target} today by staying under budget`
+        : `Save at least ₱${target} this week by staying under budget`;
     }
     return "";
-  }, [templateForm.target, templateForm.category, templateForm.questType]);
+  }, [templateForm.target, templateForm.category, templateForm.questType, templateForm.period]);
 
   return (
     <div className="page-content" style={{ maxWidth: 960 }}>
