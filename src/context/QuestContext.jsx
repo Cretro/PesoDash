@@ -255,15 +255,18 @@ export function QuestProvider({ children }) {
   // ==========================================
   // EFFECT 4: DYNAMIC QUEST TEMPLATE SYNCHRONIZATION
   // ==========================================
-  // Seeds missing quests from active templates for both new and existing users.
+  // Seeds missing quests and cleans up orphaned quests from deleted templates.
   useEffect(() => {
     if (loading || !currentUser || initializing || initializingRef.current || templates.length === 0) return;
     
-    const hasMissingTemplates = templates.some(t => !quests.some(q => q.title === t.title));
-    if (hasMissingTemplates) {
+    const templateTitles = new Set(templates.map((t) => t.title));
+    const hasOrphanedQuests = quests.some((q) => !templateTitles.has(q.title));
+    const hasMissingTemplates = templates.some((t) => !quests.some((q) => q.title === t.title));
+
+    if (hasMissingTemplates || hasOrphanedQuests) {
       initializeQuests();
     }
-  }, [loading, quests.length, templates.length, currentUser, initializing]);
+  }, [loading, quests, templates, currentUser, initializing]);
 
   // ==========================================
   // EFFECT 5: UNIFIED AUDIT & PROGRESS PIPELINE
@@ -571,9 +574,20 @@ export function QuestProvider({ children }) {
       const todayStr = getPHDateString();
       
       const existingTitles = new Set(quests.map(q => q.title));
+      const templateTitles = new Set(templates.map(t => t.title));
 
+      // 1. Clean up orphaned quests whose templates have been deleted by the admin
+      for (const quest of quests) {
+        if (!templateTitles.has(quest.title)) {
+          console.log(`[QuestContext] Dynamic cleanup: Deleting orphaned quest "${quest.title}" (${quest.id})`);
+          await deleteDoc(doc(db, "quests", quest.id));
+        }
+      }
+
+      // 2. Seed missing quests from new templates
       for (const template of templates) {
         if (!existingTitles.has(template.title)) {
+          console.log(`[QuestContext] Dynamic seeding: Adding quest "${template.title}"`);
           await addDoc(collection(db, "quests"), {
             questType: template.questType,
             period: template.period || "weekly",
@@ -595,7 +609,7 @@ export function QuestProvider({ children }) {
         }
       }
     } catch (err) {
-      console.error("[QuestContext] Failed to initialize/sync missing quests:", err);
+      console.error("[QuestContext] Failed to initialize/sync missing or orphaned quests:", err);
     } finally {
       initializingRef.current = false;
       setInitializing(false);
