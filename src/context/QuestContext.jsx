@@ -350,6 +350,7 @@ export function QuestProvider({ children }) {
           newCycleStarted = true;
           let currentStreak = quest.progress || 0;
           let milestonesHit = 0;
+          const milestoneEntries = [];
 
           // Loop day-by-day from the last reset date up to yesterday
           let auditDate = new Date(lastReset + "T00:00:00");
@@ -363,6 +364,11 @@ export function QuestProvider({ children }) {
               currentStreak++;
               if (qTarget > 0 && currentStreak % qTarget === 0) {
                 milestonesHit++;
+                milestoneEntries.push({
+                  completedAt: dateStr, // Track the precise day the streak target milestone was hit
+                  streak: currentStreak,
+                  milestone: (quest.timesCompleted || 0) + milestonesHit,
+                });
               }
             } else {
               currentStreak = 0; // Streak broken
@@ -377,15 +383,6 @@ export function QuestProvider({ children }) {
           if (milestonesHit > 0) {
             userPointsIncrement += quest.pointsReward * milestonesHit;
             questUpdates.timesCompleted = (quest.timesCompleted || 0) + milestonesHit;
-            
-            const milestoneEntries = [];
-            for (let m = 1; m <= milestonesHit; m++) {
-              milestoneEntries.push({
-                completedAt: todayStr,
-                streak: currentStreak,
-                milestone: m,
-              });
-            }
             questUpdates.completionHistory = arrayUnion(...milestoneEntries);
             questUpdates.completed = true;
           } else {
@@ -413,7 +410,7 @@ export function QuestProvider({ children }) {
             questUpdates.timesCompleted = (quest.timesCompleted || 0) + 1;
             questUpdates.completionHistory = arrayUnion({
               date: lastReset,
-              completedAt: todayStr,
+              completedAt: lastReset, // Record completion date as the actual day it was completed
             });
           }
 
@@ -441,7 +438,7 @@ export function QuestProvider({ children }) {
             questUpdates.timesCompleted = (quest.timesCompleted || 0) + 1;
             questUpdates.completionHistory = arrayUnion({
               weekStart: quest.weekStart,
-              completedAt: todayStr,
+              completedAt: quest.weekStart, // Record weekly completion date as the week start date
             });
           }
 
