@@ -10,6 +10,7 @@ import {
   serverTimestamp,
   arrayUnion,
   increment,
+  deleteField,
 } from "firebase/firestore";
 import { db } from "../firebase/firebase";
 import { useAuth } from "./AuthContext";
@@ -103,6 +104,17 @@ export function QuestProvider({ children }) {
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "questTemplates"), (snap) => {
       if (!snap.empty) {
+        // Run migration: clean up deprecated targetType if present
+        snap.docs.forEach(async (d) => {
+          if (d.data().hasOwnProperty("targetType")) {
+            const data = d.data();
+            const qType = data.targetType || data.questType || "streak";
+            await updateDoc(doc(db, "questTemplates", d.id), {
+              questType: qType,
+              targetType: deleteField(),
+            });
+          }
+        });
         setTemplates(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
       } else {
         // No admin templates configured yet, use the hardcoded defaults
@@ -124,6 +136,17 @@ export function QuestProvider({ children }) {
       where("uid", "==", currentUser.uid)
     );
     const unsub = onSnapshot(q, (snap) => {
+      // Run migration: clean up deprecated targetType if present
+      snap.docs.forEach(async (d) => {
+        if (d.data().hasOwnProperty("targetType")) {
+          const data = d.data();
+          const qType = data.targetType || data.questType || "streak";
+          await updateDoc(doc(db, "quests", d.id), {
+            questType: qType,
+            targetType: deleteField(),
+          });
+        }
+      });
       const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       setQuests(data);
       setLoading(false);
@@ -165,7 +188,7 @@ export function QuestProvider({ children }) {
 
     for (const quest of questData) {
       let newProgress = 0;
-      const qType = quest.targetType || quest.questType || "streak";
+      const qType = quest.questType || "streak";
       const qCategory = quest.category || null;
       const qTarget = Number(quest.target || 0);
       const isDaily = quest.period === "daily";
@@ -287,7 +310,7 @@ export function QuestProvider({ children }) {
         const expectedCategory = template.category || null;
         const expectedDesc = template.description || "";
         const expectedIcon = template.icon || "";
-        const expectedQuestType = template.questType || template.targetType || "streak";
+        const expectedQuestType = template.questType || "streak";
 
         if (quest.period !== expectedPeriod) updates.period = expectedPeriod;
         if (Number(quest.target) !== expectedTarget) updates.target = expectedTarget;
@@ -297,7 +320,6 @@ export function QuestProvider({ children }) {
         if (quest.icon !== expectedIcon) updates.icon = expectedIcon;
         if (quest.questType !== expectedQuestType) {
           updates.questType = expectedQuestType;
-          updates.targetType = expectedQuestType;
         }
 
         if (Object.keys(updates).length > 0) {
@@ -333,7 +355,7 @@ export function QuestProvider({ children }) {
             completed: false,
           };
 
-          const qType = quest.targetType || quest.questType || "streak";
+          const qType = quest.questType || "streak";
           const qTarget = Number(quest.target || 0);
 
           // Audit success criteria at midnight
@@ -369,7 +391,7 @@ export function QuestProvider({ children }) {
             completed: false,
           };
 
-          const qType = quest.targetType || quest.questType || "streak";
+          const qType = quest.questType || "streak";
           const qTarget = Number(quest.target || 0);
 
           let wasSuccessful = quest.completed;
@@ -411,8 +433,7 @@ export function QuestProvider({ children }) {
       // Write template instances directly to '/quests' collection owned by the user's UID
       for (const template of templates) {
         await addDoc(collection(db, "quests"), {
-          questType: template.questType || template.targetType || "streak",
-          targetType: template.targetType || template.questType || "streak",
+          questType: template.questType || "streak",
           period: template.period || "weekly",
           title: template.title,
           description: template.description,

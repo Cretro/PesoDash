@@ -87,7 +87,7 @@ export default function Quests() {
               }
             }
             
-            const qType = quest.targetType || quest.questType || "streak";
+            const qType = quest.questType || "streak";
             // Check if the quest is a category budget limit and the user has overspent.
             const isFailedSpendLimit = (qType === "category" || qType === "total_spend_limit") && quest.progress > quest.target;
 

@@ -53,7 +53,6 @@ export default function AdminDashboard() {
   // --- Add/Edit Quest Template Form State ---
   const [templateForm, setTemplateForm] = useState({
     questType: "streak",
-    targetType: "streak",
     period: "weekly",
     title: "",
     description: "",
@@ -132,19 +131,18 @@ export default function AdminDashboard() {
   // Saves or updates a quest template rule in '/questTemplates' collection.
   async function handleSaveTemplate(e) {
     e.preventDefault();
-    const { title, description, target, pointsReward, icon, questType, targetType, period, category } = templateForm;
+    const { title, description, target, pointsReward, icon, questType, period, category } = templateForm;
     if (!title || !description || !target || !pointsReward || !icon) {
       triggerStatus("Please fill in all template fields.", "danger");
       return;
     }
 
     try {
-      const qType = targetType || questType || "streak";
+      const qType = questType || "streak";
       const payload = {
         title: title.trim(),
         description: description.trim(),
         questType: qType,
-        targetType: qType,
         period: period || "weekly",
         target: Number(target),
         pointsReward: Number(pointsReward),
@@ -172,7 +170,6 @@ export default function AdminDashboard() {
       // Reset form controls
       setTemplateForm({
         questType: "streak",
-        targetType: "streak",
         period: "weekly",
         title: "",
         description: "",
@@ -233,22 +230,22 @@ export default function AdminDashboard() {
   const suggestedDescription = useMemo(() => {
     const target = templateForm.target || "X";
     const category = templateForm.category || "[Category]";
-    const targetType = templateForm.targetType || templateForm.questType || "streak";
+    const qType = templateForm.questType || "streak";
 
-    if (targetType === "streak") {
+    if (qType === "streak") {
       return `Stay under your daily budget for ${target} days in a row this week`;
     }
-    if (targetType === "total_spend_limit" || targetType === "category") {
+    if (qType === "total_spend_limit" || qType === "category") {
       return `Spend less than ₱${target} on ${category || "all expenses"} this week`;
     }
-    if (targetType === "zero_splurge_days" || targetType === "zero_splurge") {
+    if (qType === "zero_splurge_days" || qType === "zero_splurge") {
       return `Spend ₱0 on ${category || "Others"} for ${target} days this week`;
     }
-    if (targetType === "savings_goal") {
+    if (qType === "savings_goal") {
       return `Save at least ₱${target} this week by staying under budget`;
     }
     return "";
-  }, [templateForm.target, templateForm.category, templateForm.targetType, templateForm.questType]);
+  }, [templateForm.target, templateForm.category, templateForm.questType]);
 
   return (
     <div className="page-content" style={{ maxWidth: 960 }}>
@@ -464,10 +461,10 @@ export default function AdminDashboard() {
                                 {temp.period || "weekly"}
                               </span>
                               <span className="badge rounded-pill small" style={{ background: "rgba(255, 255, 255, 0.08)", color: "#94a3b8", border: "1px solid rgba(255, 255, 255, 0.12)", fontSize: "0.7rem" }}>
-                                {temp.targetType || temp.questType || "streak"}
+                                {temp.questType || "streak"}
                               </span>
                               <span className="badge rounded-pill small" style={{ background: "rgba(99, 102, 241, 0.15)", color: "#818cf8", border: "1px solid rgba(99, 102, 241, 0.3)", fontSize: "0.7rem" }}>
-                                Target: {["category", "total_spend_limit", "savings_goal"].includes(temp.targetType || temp.questType) ? `₱${temp.target}` : `${temp.target} days`}
+                                Target: {["category", "total_spend_limit", "savings_goal"].includes(temp.questType) ? `₱${temp.target}` : `${temp.target} days`}
                               </span>
                               <span className="badge rounded-pill small" style={{ background: "rgba(16, 185, 129, 0.15)", color: "#34d399", border: "1px solid rgba(16, 185, 129, 0.3)", fontSize: "0.7rem" }}>
                                 +{temp.pointsReward}pt
@@ -481,22 +478,21 @@ export default function AdminDashboard() {
                           </div>
                           <div className="d-flex flex-column gap-1.5">
                             <button
-                              className="btn btn-sm btn-outline-primary rounded-3 py-1 px-2 border-0"
-                              onClick={() => {
-                                setEditingTemplate(temp);
-                                setTemplateForm({
-                                  questType: temp.targetType || temp.questType || "streak",
-                                  targetType: temp.targetType || temp.questType || "streak",
-                                  period: temp.period || "weekly",
-                                  title: temp.title,
-                                  description: temp.description,
-                                  target: temp.target,
-                                  pointsReward: temp.pointsReward,
-                                  icon: temp.icon,
-                                  category: temp.category || "",
-                                });
-                                setShowAddTemplate(true);
-                              }}
+                                className="btn btn-sm btn-outline-primary rounded-3 py-1 px-2 border-0"
+                                onClick={() => {
+                                  setEditingTemplate(temp);
+                                  setTemplateForm({
+                                    questType: temp.questType || "streak",
+                                    period: temp.period || "weekly",
+                                    title: temp.title,
+                                    description: temp.description,
+                                    target: temp.target,
+                                    pointsReward: temp.pointsReward,
+                                    icon: temp.icon,
+                                    category: temp.category || "",
+                                  });
+                                  setShowAddTemplate(true);
+                                }}
                             >
                               <FiEdit2 size={13} />
                             </button>
@@ -782,12 +778,12 @@ export default function AdminDashboard() {
                     <div className="col-8">
                       <label className="form-label text-uppercase small fw-semibold text-secondary mb-1">Quest Type</label>
                       <select
-                        value={templateForm.targetType || templateForm.questType}
+                        value={templateForm.questType}
                         onChange={(e) => {
                           const newType = e.target.value;
                           // Auto-lock target to 1 when daily streak or daily zero_splurge is selected
                           const isLockedTarget = ["streak", "zero_splurge_days"].includes(newType) && (templateForm.period || "weekly") === "daily";
-                          setTemplateForm({ ...templateForm, targetType: newType, questType: newType, target: isLockedTarget ? 1 : templateForm.target });
+                          setTemplateForm({ ...templateForm, questType: newType, target: isLockedTarget ? 1 : templateForm.target });
                         }}
                         className="form-select text-white bg-dark border-secondary"
                       >
@@ -803,31 +799,31 @@ export default function AdminDashboard() {
                   <div className="alert bg-white bg-opacity-5 border border-white border-opacity-10 py-2.5 px-3 small text-secondary mb-0 rounded-3">
                     {templateForm.period === "daily" ? (
                       <>
-                        {(templateForm.targetType || templateForm.questType) === "streak" && (
+                        {templateForm.questType === "streak" && (
                           <span>🎯 <strong>Daily streak</strong>: Checks if daily total spending today is within daily budget. Target is always 1 day.</span>
                         )}
-                        {(templateForm.targetType || templateForm.questType) === "total_spend_limit" && (
+                        {templateForm.questType === "total_spend_limit" && (
                           <span>🎯 <strong>Daily spend limit</strong>: Keeps today's spending in category under target limit. Resets daily. Target is cash limit in pesos (e.g. 150).</span>
                         )}
-                        {(templateForm.targetType || templateForm.questType) === "zero_splurge_days" && (
+                        {templateForm.questType === "zero_splurge_days" && (
                           <span>🎯 <strong>Daily Zero Splurge</strong>: Checks if you logged expenses today but spent ₱0 on a category. Resets daily. Target should be 1.</span>
                         )}
-                        {(templateForm.targetType || templateForm.questType) === "savings_goal" && (
+                        {templateForm.questType === "savings_goal" && (
                           <span>🎯 <strong>Daily Savings</strong>: Checks today's savings (Daily Budget - today's spend). Resets daily. Target is in pesos (e.g. 50).</span>
                         )}
                       </>
                     ) : (
                       <>
-                        {(templateForm.targetType || templateForm.questType) === "streak" && (
+                        {templateForm.questType === "streak" && (
                           <span>🎯 <strong>Weekly Streak</strong>: Counts consecutive days from Sunday where daily spending is within daily budget. Target is number of days (e.g. 5).</span>
                         )}
-                        {(templateForm.targetType || templateForm.questType) === "total_spend_limit" && (
+                        {templateForm.questType === "total_spend_limit" && (
                           <span>🎯 <strong>Weekly Spend Limit</strong>: Keeps total spending in a category under target limit for the entire week. Resets Sunday. Target is in pesos (e.g. 1000).</span>
                         )}
-                        {(templateForm.targetType || templateForm.questType) === "zero_splurge_days" && (
+                        {templateForm.questType === "zero_splurge_days" && (
                           <span>🎯 <strong>Weekly Zero Splurge Days</strong>: Counts how many days this week have ₱0 expenses logged in a chosen category. Target is number of days (e.g. 3).</span>
                         )}
-                        {(templateForm.targetType || templateForm.questType) === "savings_goal" && (
+                        {templateForm.questType === "savings_goal" && (
                           <span>🎯 <strong>Weekly Savings Goal</strong>: Tracks total money saved this week. Resets Sunday. Target is in pesos (e.g. 500).</span>
                         )}
                       </>
@@ -842,7 +838,7 @@ export default function AdminDashboard() {
                         onChange={(e) => {
                           const newPeriod = e.target.value;
                           // Auto-lock target to 1 when switching to daily streak or daily zero_splurge mode
-                          const isLockedTarget = ["streak", "zero_splurge_days"].includes(templateForm.targetType || templateForm.questType) && newPeriod === "daily";
+                          const isLockedTarget = ["streak", "zero_splurge_days"].includes(templateForm.questType) && newPeriod === "daily";
                           setTemplateForm({ ...templateForm, period: newPeriod, target: isLockedTarget ? 1 : templateForm.target });
                         }}
                         className="form-select text-white bg-dark border-secondary"
@@ -892,7 +888,7 @@ export default function AdminDashboard() {
                   <div className="row g-2">
                     <div className="col-6">
                       <label className="form-label text-uppercase small fw-semibold text-secondary mb-1 font-monospace">
-                        {["category", "total_spend_limit", "savings_goal"].includes(templateForm.targetType || templateForm.questType)
+                        {["category", "total_spend_limit", "savings_goal"].includes(templateForm.questType)
                           ? "Target (₱)"
                           : "Target (Days)"}
                       </label>
@@ -900,13 +896,13 @@ export default function AdminDashboard() {
                         type="number"
                         min={1}
                         required
-                        placeholder={["category", "total_spend_limit", "savings_goal"].includes(templateForm.targetType || templateForm.questType) ? "e.g. 500" : "e.g. 5"}
+                        placeholder={["category", "total_spend_limit", "savings_goal"].includes(templateForm.questType) ? "e.g. 500" : "e.g. 5"}
                         value={templateForm.target}
                         onChange={(e) => setTemplateForm({ ...templateForm, target: e.target.value })}
                         className="form-control text-white bg-dark border-secondary"
                         // Lock to 1 for daily streak/zero_splurge — the engine hardcodes progress as 0 or 1 for these, making any other value impossible to reach
-                        readOnly={["streak", "zero_splurge_days"].includes(templateForm.targetType || templateForm.questType) && templateForm.period === "daily"}
-                        style={["streak", "zero_splurge_days"].includes(templateForm.targetType || templateForm.questType) && templateForm.period === "daily" ? { opacity: 0.5, cursor: "not-allowed" } : {}}
+                        readOnly={["streak", "zero_splurge_days"].includes(templateForm.questType) && templateForm.period === "daily"}
+                        style={["streak", "zero_splurge_days"].includes(templateForm.questType) && templateForm.period === "daily" ? { opacity: 0.5, cursor: "not-allowed" } : {}}
                       />
                     </div>
                     <div className="col-6">
@@ -923,7 +919,7 @@ export default function AdminDashboard() {
                     </div>
                   </div>
 
-                  {["days_under_category_limit", "total_spend_limit", "zero_splurge_days", "category"].includes(templateForm.targetType || templateForm.questType) && (
+                  {["days_under_category_limit", "total_spend_limit", "zero_splurge_days", "category"].includes(templateForm.questType) && (
                     <div>
                       <label className="form-label text-uppercase small fw-semibold text-secondary mb-1">Specific Category</label>
                       <select
