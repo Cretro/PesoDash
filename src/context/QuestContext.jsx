@@ -666,7 +666,6 @@ export function QuestProvider({ children }) {
     }
   }
 
-<<<<<<< HEAD
   /**
    * SELF-HEALING: deduplicateQuests
    * Purpose: Checks if the user has duplicate quests (e.g. from rapid double-clicks/StrictMode triggers)
