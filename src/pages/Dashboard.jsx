@@ -8,37 +8,60 @@ import { useQuests } from "../context/QuestContext";
 import { formatCurrency, getTodayString, sumExpenses } from "../utils/formatters";
 import Avatar from "../components/Avatar";
 
+/**
+ * CategoryEmoji Component
+ * 
+ * Helper mapping string categories to expressive emojis.
+ */
 function CategoryEmoji({ cat }) {
   const map = { Food: "🍱", Commute: "🚌", "School Expenses": "📚", Others: "🛍️" };
   return <span>{map[cat] || "💸"}</span>;
 }
 
+/**
+ * Dashboard Page Component
+ * 
+ * Purpose: Renders the primary landing page for authenticated users.
+ * Key Sections:
+ *  1. **Circular Budget Progress Ring**: A clean visual showing percentage of today's budget spent.
+ *  2. **Active Quest HUD**: Small summary card displaying progress on the current challenge.
+ *  3. **Recent Transactions Feed**: Clean list showing the user's latest 5 log entries.
+ */
 export default function Dashboard() {
+  // Consumer Hooks: Retrieve data pools from the global React Context Providers
   const { currentUser, userProfile } = useAuth();
   const { expenses } = useExpenses();
   const { quests } = useQuests();
 
   const dailyBudget = userProfile?.dailyBudget || 300;
-  const todayStr = getTodayString();
+  const todayStr = getTodayString(); // Gets current local date string (YYYY-MM-DD)
 
+  // useMemo: Filters the full expense list to isolate items logged today.
+  // Optimizes performance so this filtering loop only re-runs if expenses update.
   const todayExpenses = useMemo(() => expenses.filter((e) => e.date === todayStr), [expenses, todayStr]);
   const todayTotal = sumExpenses(todayExpenses);
   const pct = Math.min((todayTotal / dailyBudget) * 100, 100);
   const remaining = Math.max(dailyBudget - todayTotal, 0);
-  const isOver = todayTotal > dailyBudget;
+  const isOver = todayTotal > dailyBudget; // Triggers UI styling shifts (e.g. red borders)
 
-  const recentExpenses = expenses.slice(0, 5);
-  const activeQuest = quests.find((q) => !q.completed);
-  const name = currentUser?.displayName?.split(" ")[0] || "there";
+  const recentExpenses = expenses.slice(0, 5); // Grabs the 5 most recent records
+  const activeQuest = quests.find((q) => !q.completed); // Gets the first uncompleted quest
+  const name = currentUser?.displayName?.split(" ")[0] || "there"; // Grabs first name
 
+  // --- SVG Circular Progress Ring Mathematics ---
+  // Formula for circle circumference: C = 2 * π * r
+  // Here, radius (r) is 40. Circumference = 2 * Math.PI * 40 ≈ 251.2px
   const circ = 2 * Math.PI * 40;
+  // Dash offset controls how much of the stroke is Hidden (drawn with empty space).
+  // If 0% is used, offset = circ (completely empty ring).
+  // If 100% is used, offset = 0 (completely filled ring).
   const dashOff = circ * (1 - pct / 100);
 
   return (
     <div className="page-content">
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
 
-        {/* Greeting row */}
+        {/* Header Section: Avatar and Point Counter */}
         <div className="d-flex align-items-center justify-content-between mb-4">
           <div className="d-flex align-items-center gap-3">
             <Avatar name={currentUser?.displayName || "User"} size={48} />
@@ -54,17 +77,21 @@ export default function Dashboard() {
 
         <div className="row g-4">
           <div className="col-12 col-lg-7">
-            {/* Budget card */}
+            
+            {/* Circular Progress Ring & Spending stats */}
             <div className={`card rounded-4 mb-3 ${isOver ? "border-danger" : ""}`}
               style={{ background: isOver ? "rgba(239,68,68,.1)" : "rgba(99,102,241,.08)", borderColor: isOver ? "rgba(239,68,68,.3)" : "rgba(99,102,241,.25)" }}>
               <div className="card-body d-flex align-items-center gap-4">
-                {/* SVG ring */}
+                
+                {/* SVG Progress Circle rendering */}
                 <div className="budget-ring-wrap" style={{ flexShrink: 0 }}>
                   <svg width="100" height="100" viewBox="0 0 100 100">
+                    {/* Background grey track */}
                     <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,.08)" strokeWidth="10" />
+                    {/* Active foreground indicator bar */}
                     <circle cx="50" cy="50" r="40" fill="none" stroke={isOver ? "#ef4444" : "#6366f1"}
                       strokeWidth="10" strokeDasharray={circ} strokeDashoffset={dashOff}
-                      strokeLinecap="round" transform="rotate(-90 50 50)"
+                      strokeLinecap="round" transform="rotate(-90 50 50)" // Rotates -90deg so progress starts at 12 o'clock
                       style={{ transition: "stroke-dashoffset .6s ease" }} />
                   </svg>
                   <div className="budget-ring-label">
@@ -73,7 +100,7 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                {/* Stats — Bootstrap grid */}
+                {/* Numeric Budget Metrics */}
                 <div className="row g-3 flex-fill">
                   <div className="col-12">
                     <p className="text-uppercase small fw-semibold text-secondary mb-0" style={{ fontSize: ".65rem" }}>Spent Today</p>
@@ -93,7 +120,7 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Streak badge */}
+            {/* Streak Counter Alert */}
             <div className="d-flex align-items-center gap-2 px-3 py-2.5 rounded-3 mb-3"
               style={{ background: "rgba(245,158,11,.08)", border: "1px solid rgba(245,158,11,.2)" }}>
               <span>🔥</span>
@@ -102,7 +129,7 @@ export default function Dashboard() {
               </span>
             </div>
 
-            {/* Analytics shortcut */}
+            {/* Analytics navigation banner link */}
             <Link to="/analytics" className="text-decoration-none mb-3 d-block">
               <div className="card rounded-3 glass-card" style={{ background: "rgba(99,102,241,.12)", border: "1px solid rgba(99,102,241,.2)" }}>
                 <div className="card-body d-flex align-items-center justify-content-between py-2.5">
@@ -117,7 +144,7 @@ export default function Dashboard() {
           </div>
 
           <div className="col-12 col-lg-5">
-            {/* Active Quest */}
+            {/* Active Quest HUD */}
             {activeQuest && (
               <div className="mb-4">
                 <p className="text-uppercase small fw-semibold text-secondary mb-2" style={{ fontSize: ".75rem" }}>Active Quest</p>
@@ -143,7 +170,7 @@ export default function Dashboard() {
               </div>
             )}
 
-            {/* Recent Expenses */}
+            {/* Recent Expenses Feed */}
             <div>
               <p className="text-uppercase small fw-semibold text-secondary mb-2" style={{ fontSize: ".75rem" }}>Recent Expenses</p>
               {recentExpenses.length === 0
