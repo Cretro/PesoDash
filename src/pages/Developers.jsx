@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 const DEVELOPERS = [
   {
     name: "Golpe, John Linus",
-    role: "Leader",
+    role: "Developer",
     contribution: "Spearheaded Firebase authentication, configuration, context hooks, and secure routing structures.",
     image: "LinusGolpe.jpg",
     initials: "JG",
