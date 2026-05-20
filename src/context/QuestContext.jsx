@@ -184,14 +184,20 @@ export function QuestProvider({ children }) {
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 2000); // 2s timeout limit
-        const res = await fetch("https://worldtimeapi.org/api/timezone/Asia/Manila", { signal: controller.signal });
+        const res = await fetch("https://timeapi.io/api/time/current/zone?timeZone=UTC", { signal: controller.signal });
         clearTimeout(timeoutId);
 
         if (res.ok) {
           const data = await res.json();
-          const trueTime = new Date(data.utc_datetime).getTime();
-          // Store time offset relative to local system clock
-          window.__TIME_OFFSET__ = trueTime - Date.now();
+          // Fetching timeZone=UTC gives us the authoritative universal time.
+          // Appending 'Z' tells the JavaScript Date parser that this is a Zulu (UTC) time string,
+          // which correctly resolves to the absolute worldwide epoch milliseconds.
+          const trueTime = new Date(data.dateTime + "Z").getTime();
+          
+          if (trueTime && !isNaN(trueTime)) {
+            // Store time offset relative to local system clock
+            window.__TIME_OFFSET__ = trueTime - Date.now();
+          }
         }
       } catch (err) {
         console.warn("[Anti-Cheat] Time sync failed, falling back to local clock.");
