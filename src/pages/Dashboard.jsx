@@ -71,7 +71,7 @@ export default function Dashboard() {
         {/* Header Section: Avatar and Point Counter */}
         <div className="d-flex align-items-center justify-content-between mb-4">
           <div className="d-flex align-items-center gap-3">
-            <Avatar name={currentUser?.displayName || "User"} size={48} />
+            <Avatar name={currentUser?.displayName || "User"} gender={userProfile?.gender} size={48} />
             <div>
               <p className="fw-bold mb-1" style={{ color: "#95C159", fontSize: "12px" }}>
                 {now.toDateString()} at {now.toLocaleTimeString()}

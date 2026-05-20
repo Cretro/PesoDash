@@ -12,7 +12,7 @@ const FriendContext = createContext(null);
 export function FriendProvider({ children }) {
   const [friends, setFriends] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { currentUser } = useAuth();
+  const { currentUser, userProfile } = useAuth();
 
   // Real-time listener on the current user's friends subcollection:
   // Listens to: /users/{currentUser.uid}/friends/
@@ -75,6 +75,7 @@ export function FriendProvider({ children }) {
       friendUid: target.uid,
       friendName: target.displayName,
       friendEmail: target.email,
+      friendGender: target.gender || "prefer_not_to_say",
     });
 
     // Write to receiver's subcollection (representing an incoming request)
@@ -83,6 +84,7 @@ export function FriendProvider({ children }) {
       friendUid: currentUser.uid,
       friendName: currentUser.displayName,
       friendEmail: currentUser.email,
+      friendGender: userProfile?.gender || "prefer_not_to_say",
     });
   }
 

@@ -24,12 +24,13 @@ export function AuthProvider({ children }) {
    *  3. Creates a corresponding document in the `/users` Firestore collection to store metadata 
    *     (daily budget, points, streaks) that Firebase Auth doesn't support by default.
    */
-  async function register(email, password, displayName) {
+  async function register(email, password, displayName, gender) {
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(cred.user, { displayName });
     await setDoc(doc(db, "users", cred.user.uid), {
       displayName,
       email,
+      gender: gender || "prefer_not_to_say",
       totalPoints: 0,
       currentStreak: 0,
       dailyBudget: 300,
