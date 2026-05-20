@@ -8,6 +8,8 @@ import {
   addDoc,
   deleteDoc,
   serverTimestamp,
+  query,
+  limit
 } from "firebase/firestore";
 import { db } from "../firebase/firebase";
 import { useAuth } from "../context/AuthContext";
@@ -65,7 +67,8 @@ export default function AdminDashboard() {
   // Effect: Sets up real-time listener to the global '/users' collection.
   // Triggers state refresh instantly when users sign up or update profiles.
   useEffect(() => {
-    const unsub = onSnapshot(collection(db, "users"), (snap) => {
+    // SECURITY LIMIT: Capped at 50 to prevent massively overloading the client and Firebase read quota during presentations.
+    const unsub = onSnapshot(query(collection(db, "users"), limit(50)), (snap) => {
       setUsers(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
       setLoadingUsers(false);
     });
@@ -85,7 +88,8 @@ export default function AdminDashboard() {
   // Effect: Sets up real-time listener to the global '/expenses' collection.
   // Used to aggregate platform-wide spending stats in the Stats panel.
   useEffect(() => {
-    const unsub = onSnapshot(collection(db, "expenses"), (snap) => {
+    // SECURITY LIMIT: Capped at 500 to prevent massively overloading the client and Firebase read quota during presentations.
+    const unsub = onSnapshot(query(collection(db, "expenses"), limit(500)), (snap) => {
       setExpenses(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
       setLoadingExpenses(false);
     });

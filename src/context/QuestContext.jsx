@@ -200,7 +200,7 @@ export function QuestProvider({ children }) {
       console.error("QuestContext onSnapshot failed:", err);
     });
     return unsub;
-  }, [currentUser]);
+  }, [currentUser, timeSynced]);
 
   // Effect: Declares side-effects for initializing quests if none are found in the database.
   useEffect(() => {

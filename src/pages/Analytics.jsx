@@ -49,20 +49,21 @@ export default function Analytics() {
   // Uses PH timezone to match expense date format stored in Firestore.
   const trendData = useMemo(() => {
     const days = [];
+    const dbFormatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit' });
+    const uiFormatter = new Intl.DateTimeFormat('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric' });
+    
     for (let i = 29; i >= 0; i--) {
       const d = new Date(); 
       d.setDate(d.getDate() - i);
-      // Use local PH date string to match how expenses store dates
-      const ph = new Date(d.toLocaleString("en-US", { timeZone: "Asia/Manila" }));
-      const y = ph.getFullYear();
-      const m = String(ph.getMonth() + 1).padStart(2, "0");
-      const day = String(ph.getDate()).padStart(2, "0");
-      const ds = `${y}-${m}-${day}`;
+      // Safely generate "YYYY-MM-DD" for Firestore matching without passing strings back to new Date()
+      const ds = dbFormatter.format(d);
+      
       const total = expenses
         .filter((e) => e.date === ds)
         .reduce((sum, e) => sum + Number(e.amount), 0);
+        
       days.push({ 
-        date: ph.toLocaleDateString("en-PH", { month: "short", day: "numeric" }), 
+        date: uiFormatter.format(d), 
         amount: total 
       });
     }
