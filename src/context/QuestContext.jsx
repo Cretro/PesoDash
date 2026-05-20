@@ -198,7 +198,7 @@ export function QuestProvider({ children }) {
       const activeExpenses = isDaily ? todayExpenses : weekExpenses;
 
       // --- EVALUATION PATH 1: Streaks (Staying under daily budget limit) ---
-      if (qType === "streak" || qType === "streak_under_budget") {
+      if (qType === "streak") {
         if (isDaily) {
           const todayTotal = todayExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
           newProgress = todayTotal <= dailyBudget ? 1 : 0;
